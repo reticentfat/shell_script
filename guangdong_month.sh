@@ -233,7 +233,7 @@ bzip2 /home/oracle/etl/data/guangdong/month/new/optcost/*
 bzip2 /home/oracle/etl/data/guangdong/month/new/city/*
 
 
-ftp -i -v -n 121.8.228.134 <<EOF
+ftp -i -v -n IP <<EOF
 user xunqi ZM3C61wR
 binary
 cd /month/online/
@@ -243,7 +243,7 @@ lcd /home/oracle/etl/data/guangdong/month/online/optcost/
 mput *
 EOF
 
-ftp -i -v -n 121.8.228.134 <<EOF
+ftp -i -v -n IP <<EOF
 user xunqi ZM3C61wR
 binary
 cd /month/online/
@@ -252,7 +252,7 @@ lcd /home/oracle/etl/data/guangdong/month/online/city/
 mput *
 EOF
 
-ftp -i -v -n 121.8.228.134 <<EOF
+ftp -i -v -n IP <<EOF
 user xunqi ZM3C61wR
 binary
 cd /month/cancel/
@@ -262,7 +262,7 @@ lcd /home/oracle/etl/data/guangdong/month/cancel/optcost/
 mput *
 EOF
 
-ftp -i -v -n 121.8.228.134 <<EOF
+ftp -i -v -n IP <<EOF
 user xunqi ZM3C61wR
 binary
 cd /month/cancel/
@@ -271,7 +271,7 @@ lcd /home/oracle/etl/data/guangdong/month/cancel/city/
 mput *
 EOF
 
-ftp -i -v -n 121.8.228.134 <<EOF
+ftp -i -v -n IP <<EOF
 user xunqi ZM3C61wR
 binary
 cd /month/new/
@@ -281,7 +281,7 @@ lcd /home/oracle/etl/data/guangdong/month/new/optcost/
 mput *
 EOF
 
-ftp -i -v -n 121.8.228.134 <<EOF
+ftp -i -v -n IP <<EOF
 user xunqi ZM3C61wR
 binary
 cd /month/new/
@@ -290,7 +290,7 @@ lcd /home/oracle/etl/data/guangdong/month/new/city/
 mput *
 EOF
 
-ftp -i -v -n 121.8.228.134 <<EOF
+ftp -i -v -n IP <<EOF
 user xunqi ZM3C61wR
 cd /month/guangzhou/
 mkdir $DEALDATE
