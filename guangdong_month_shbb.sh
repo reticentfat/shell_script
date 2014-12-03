@@ -196,7 +196,7 @@ bzip2 /home/oracle/etl/data/guangdong/month/media/new/optcost/*
 bzip2 /home/oracle/etl/data/guangdong/month/media/new/city/*
 
 
-ftp -i -v -n 172.16.24.23 <<EOF
+ftp -i -v -n IP <<EOF
 user gdadmin 1234qwer
 binary
 cd /month/media/online/
@@ -206,7 +206,7 @@ lcd /home/oracle/etl/data/guangdong/month/media/online/optcost/
 mput *
 EOF
 
-ftp -i -v -n 172.16.24.23 <<EOF
+ftp -i -v -n IP <<EOF
 user gdadmin 1234qwer
 binary
 cd /month/media/online/
@@ -215,7 +215,7 @@ lcd /home/oracle/etl/data/guangdong/month/media/online/city/
 mput *
 EOF
 
-ftp -i -v -n 172.16.24.23 <<EOF
+ftp -i -v -n IP <<EOF
 user gdadmin 1234qwer
 binary
 cd /month/media/cancel/
@@ -225,7 +225,7 @@ lcd /home/oracle/etl/data/guangdong/month/media/cancel/optcost/
 mput *
 EOF
 
-ftp -i -v -n 172.16.24.23 <<EOF
+ftp -i -v -n IP <<EOF
 user gdadmin 1234qwer
 binary
 cd /month/media/cancel/
@@ -234,7 +234,7 @@ lcd /home/oracle/etl/data/guangdong/month/media/cancel/city/
 mput *
 EOF
 
-ftp -i -v -n 172.16.24.23 <<EOF
+ftp -i -v -n IP <<EOF
 user gdadmin 1234qwer
 binary
 cd /month/media/new/
@@ -244,7 +244,7 @@ lcd /home/oracle/etl/data/guangdong/month/media/new/optcost/
 mput *
 EOF
 
-ftp -i -v -n 172.16.24.23 <<EOF
+ftp -i -v -n IP <<EOF
 user gdadmin 1234qwer
 binary
 cd /month/media/new/
