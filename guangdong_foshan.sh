@@ -5,7 +5,7 @@
 DEALDATE=`date '+%Y%m%d'`
 echo $DEALDATE
 
-ftp -i -v -n 211.139.201.152 <<EOF
+ftp -i -v -n 211.***.***.*** <<EOF
 user czxms fs123456
 lcd /home/oracle/etl/data/guangdong/foshan/
 put ${DEALDATE}_foshan_wzcx_data_cancel.txt
