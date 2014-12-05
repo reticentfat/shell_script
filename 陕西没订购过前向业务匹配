@@ -1,0 +1,15 @@
+#排重
+cat 陕西咸阳（1137013）.txt | sort -u >1.txt
+#生成新文件
+awk '{print $1"\t咸阳"}' 陕西咸阳（1137013）.txt  > 咸阳.txt
+#合并
+cat 咸阳.txt 西安.txt 渭南.txt 宝鸡.txt 延安.txt > wy.txt
+158上crontab
+#查找再现业务
+24 18 05 12 * bzcat /home/oracle/2.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2  | awk -F'[\t|]' '{if(NF==2) aa[$1]=$1;else if(substr($2,1,1)=="1"&&($1 in aa)&&$3=="06"&&$8=="029")  print $1"|"}' | bzip2 > /home/oracle/456.txt.bz2
+#然后再查找不在的
+ bzcat /home/oracle/456.txt.bz2 | awk -F'[|]' '{print $1"|"$2"|"$3}' | bzip2 > /home/oracle/3.txt.bz2
+bzcat /home/oracle/3.txt.bz2  /home/oracle/2.txt.bz2 | awk -F'[\t|]' '{if(NF==3) aa[$1]=$1;else if(!($1 in aa))  print $1"|"$2}' | bzip2 > /home/oracle/ok.txt.bz2
+#然后再拆分成5个文件
+awk -F'|' ‘{a=$2".txt";print $1>>a}’ ok.txt
+
