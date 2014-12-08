@@ -1,0 +1,221 @@
+41 11 9 1 * bzcat /data0/match/orig/20111230/snapshot.txt.bz2 | awk -F '|' '{if($3=="06"&&$9=="754"&&$2=="10511024") print $1","$2 }' > /home/oracle/gd_shantou_0101.txt
+
+7 11 16 1 * bzcat /home/oracle/2011_yyhk.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[|]' '{if(NF==3){aa[$1]=$1} else {if (  $14=="YYHK"  &&  $1  in aa && $8 =="020")  print $0 }}' | bzip2 > /home/oracle/gd_yyhk_online.txt.bz2
+45 13 16 1 * bzcat  tc_shbb_dg.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2  | awk -F'|' -v file1=tc_shbb_dg_a.txt -v file2=gd_yyhk_undg.txt  '{ if( NF ==1 )  aa[$1]=$1 ; else if ( $14=="SHBB" && $1  in aa)   print  $0 >> file1   }'
+7 17 16 1 *    bzcat   /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | grep -e '|10511024|' -e '|22200030|'  -e '|22220032|'   -e '|10511004|'  -e '|10511005|'  | awk -F'|' -v file1=fs_shbb_dg.txt  '{ if($3=="06" && $7==0 && $9 ==20 )     print  $1","$2    }'  > gz_huilao_zxzt.txt
+03 18 17 1 * bzcat  shanxi_31.txt.bz2   /data0/match/orig/20111130/snapshot.txt.bz2 | awk -F "[,|]" '{if(NF==3) {aa[$1$2]=$1","$2","$3} else {if(  $1$2 in aa  ) print aa[$1$2]","$3","$4}}' > shanxi_31_ok.txt
+45 16 19 1 * bzcat /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | grep ',ML'  | awk -F'|' '{if($3=="06"&&$8=="020"&&$14=="SHBB") print $1","$2","$3","$4","$14}' > /home/oracle/gd_shbb_woman_qf.txt
+
+5 18 30 1 *  bzcat /home/oracle/qingyuan_mfshbb_zx_396621.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[|]' '{if(NF==1){aa[$1]=$1} else {if (   $2=="22200030" && $3=="06"  &&   $1  in aa  && $8 =="020")  print $1","$4","$11 }}' | bzip2 > /home/oracle/qingyuan_mfshbb_zx_396621_in.txt.bz2
+5 17 31 1 * bzcat  gd_qxdq_appcode.txt.bz2 /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2  | awk -F "[,|]" '{if(NF==10) aa[$3$1]=$0; else if ( $3=="06"  &&  $1$2 in aa   ) print aa[$1$2]","$4 }' | bzip2  > gd_qxdg_dgz.txt.bz2
+
+25 14 20 2 * bzcat /data0/match/orig/20120218/snapshot.txt.bz2 | awk -F'|' '{if($7==1&&$3=="06"&&($8=="020"||$8=="0571"||$8=="021"||$8=="028"||$8=="025"||$8=="010") && $4 <=20110809000000&&($2==22220032||$2==22200030)) print $0 }' > 6s_shbb_online.txt
+
+28 14 20 2 * bzcat /data0/match/orig/20120218/snapshot.txt.bz2 | awk -F'|' -v file1=/home/oracle/shanghai_zhukan.txt -v file2=/home/oracle/shanghai_fukan.txt  '{if($3=="06"&&$8=="021"&&($2=="22220032"||$2=="22230033"||$2=="22220042"||$2=="22200030") ) print $1","$2","$4","$14 > file1 ; else if ( $3=="06"&&$8=="021"&&$2!="22220032"&&$2!="22230033"&&$2!="22220042"&&$2!="22200030") print  $1","$2","$4","$5","$14>> file2  }'
+50 11 17 2 * bzcat /home/oracle/chahao.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==1){aa[$1]=$1} else {if (   $1  in aa  )  print $0 }}' | bzip2 > /home/oracle/chahao_online.txt.bz2
+
+
+ bzcat /data0/match/orig/20110917/snapshot.txt.bz2 | awk -F'|' '{if($3=="07"&&$8=="020"&&$4>="20110902000000"&&($2=="10301009"||$2=="10301010"||$2=="10301083"||$2=="10301085"||$2=="10511003"||$2=="10511004"||$2=="10511014"||$2=="22220032")) print $1","$2","$5","$4","$18}' > gd_20110908_unsub.txt
+
+/data0/match/orig/20110908
+bzcat /data0/match/orig/20110917/snapshot.txt.bz2 | awk -F'|' '{if($7=1&&$3=="06"&&$9=="470"&& (substr($2,1,3)="105"||substr($2,1,1)="2")) print $1","$2","$7","$9 }' > gd_20110908_sub.txt
+cat /data/wxlog/wxsub/20110908/FSWZ20110908_first.txt | awk -F'^' '{if($8==3) print $2"|"$23"|"$7"|"$24"|"$9"|"$28"|"}' > gd_wz_20110908.txt
+bzcat /data0/match/orig/20110908/snapshot.txt.bz2 /data0/match/orig/20110908/user_sn.txt.bz2 | awk -F'|' -v afile=/data0/match/orig/20110908/snapshot.txt.bz2 -v scfile1=snap_gd_20110908.txt -v scfile2=wz_gd_20110908.txt  '{if(FILENAME==afile && $3=="06"&&$8=="020"&&($2=="10301009"||$2=="10301010"||$2=="10301083"||$2=="10301085"||$2=="10511003"||$2=="10511004"||$2=="10511014"||$2=="22220032")) print $1","$2","$11",99991221235900" >>scfile1 ; else if (FILENAME!=afile&& $3=="06"&&$8=="020") print $1","$2","$11",99991221235900" >>scfile2}'  
+bzcat /data0/match/orig/20111204/snapshot.txt.bz2 | awk -F'|' '{if($7==1&&$3=="06"&&$8=="020"&&($2==22220032||$2==22101025))) print $1","$2 }' > gd_shbbyyxg_online.txt
+
+ cat /data/wxlog/wxsub/20110915/FSWZ20110915_first.txt | awk -F'^' '{if($8==0&&$9>="2011-09-09 00:00:00") print $2"|"$23"|"$7"|"$24"|"$9"|"$28"|"}' > gd_wz_20110915_td.txt
+
+ bzcat /data0/match/orig/20111120/snapshot.txt.bz2 | awk -F'|' '{if($3=="06"&&$9=="755"&&substr($2,1,1)==2)) print $1","$2","$4","$5","$9}' > gdsz_20111121_online.txt
+cat gd_20110908_sub_ok.txt | awk -F'[,|]' -v  fileout=/home/oracle/gdzb/  '{if (1==1) aa="/home/oracle/gdzb/"$2"20110908.txt"; print $1","$2","$3","$4","$6","$7","$8 >> aa }'
+ cat gd_wz_20110908_td_ok.txt | awk -F'[,|]' -v  fileout=/home/oracle/gdzb/  '{if (1==1) aa="/home/oracle/gdzb/unsub/"$2"20110908.txt"; print $1","$2","$3","$4","$6","$7","$8 >> aa }' 
+ cat gd_wz_20110908_td_ok.txt | awk -F'[,|]' -v  fileout=/home/oracle/gdzb/  '{if (1==1) aa="/home/oracle/gdzb/unsub/"$2"20110908.txt"; print $1","$2","$3","$4","$6","$8"," >> aa }'
+cat gd_wz_20110908_ok.txt | awk -Fczx'[,|]' -v  fileout=/home/oracle/gdzb/  '{if (1==1) aa="/home/oracle/gdzb/"$2"20110908.txt"; if ($7==1) print $1","$2","$3","$4","$6",CI,"$8 >> aa ; else if($7==2) print $1","$2","$3","$4","$6",SMS,"$8 >> aa;else if ($7==3) print $1","$2","$3","$4","$6",BOSS,"$8 >> aa ;else  print $1","$2","$3","$4","$6",weizhi,"$8 >> aa; }' 
+ 
+532
+290
+371
+270
+ bzcat /data0/match/orig/20111206/snapshot.txt.bz2 | awk -F'|' '{if($7==1&&$3=="06"&&($9=="290"||$9=="532"||$9=="371"||$9=="270")&&$2==22220032) print $0 }' | bzip2 > choucha_4city_online.txt 
+
+awk  -F '[ :\t|,]' -v opt_code=/home/oracle/etl/data/opt_code_all.txt   -v nodist=/data0/match/orig/profile/nodist.tsv  -v file_oka=/home/oracle/nmghlbe_ok1.txt -v file_okb=/home/oracle/gd_20110915_sub.txt  -v file_okc=/home/oracle/gd_20110908_unsub.txt -v file_okd=/home/oracle/gd_20110915_unsub.txt -v file_ok1=/home/oracle/nmghlbe_ok1_n.txt  -v file_ok2=/home/oracle/gd_20110915_sub_ok.txt -v file_ok3=/home/oracle/gd_20110908_unsub_ok.txt  -v file_ok4=/home/oracle/gd_20110915_unsub_ok.txt '{
+        if(FILENAME == opt_code   )  o[$1]=$5 ;
+         else if(FILENAME == nodist  ) n[$4]=$1","$2 ;
+         else if(FILENAME == file_oka &&  $3 in o && substr($1,1,7) in n  ) print  n[substr($1,1,7)]","o[$3]","$0 >> file_ok1;
+         else if(FILENAME == file_oka &&  ( !($3 in o) || !(substr($1,1,7) in n) )  ) print  n[substr($1,1,7)]","o[$3]","$0 >> file_ok1;
+                 
+}' /home/oracle/etl/data/opt_code_all.txt /data0/match/orig/profile/nodist.tsv  /home/oracle/nmghlbe_ok1.txt   
+
+
+
+
+awk  -F '[ :\t|,._]' -v opt_code=/home/oracle/etl/data/opt_code_all.txt  -v nodist=/data0/match/orig/profile/nodist.tsv    -v file_oka=/home/oracle/12yhuil_ok.txt       -v file_ok1=/home/oracle/12yhuil_aa_ok.tsv   '{
+        if(FILENAME == opt_code   )  o[$1]=$5 ;
+           else if(FILENAME == nodist   ) n[$4]=$1","$2 ;
+         else if(FILENAME == file_oka &&  $2 in o && substr($1,1,7) in n  ) print   n[substr($1,1,7)]","$1","o[$2]","$3","$4  >> file_ok1;
+         
+                 
+}' /home/oracle/etl/data/opt_code_all.txt   /data0/match/orig/profile/nodist.tsv   /home/oracle/12yhuil_ok.txt 
+
+
+
+ awk  -F'[,|\t ]' -v CODE_DIR=/data/match/mm7/20111020/stats_month.wuxian_qianxiang.1000 -v fileok=12580_zthm_ok.txt '{ if( FILENAME == CODE_DIR  )  d[$1$2]=$1","$2","$3; else if ( FILENAME != CODE_DIR && substr($2,1,3)=="105" && $1$2 in d ) print  d[$1$2]","$0 >>  fileok ; else if ( FILENAME != CODE_DIR && substr($2,1,3)=="105"  && !($1$2 in d) ) print  ",,,"$0 >>  fileok ; }' /data/match/mm7/20111020/stats_month.wuxian_qianxiang.1000  12580_zthm.txt
+awk  -F'[,|\t ]' -v CODE_DIR=/data/match/cmpp/20111020/stats_month.wuxian_qianxiang.0 -v fileok=12580_zthm_ok.txt '{ if( FILENAME == CODE_DIR  )  d[$1$2]=$1","$2","$3; else if ( FILENAME != CODE_DIR && substr($2,1,3)=="103"  && $1$2 in d ) print  d[$1$2]","$0 >>  fileok ; else if ( FILENAME != CODE_DIR && substr($2,1,3)=="103"  && !($1$2 in d) ) print  ",,,"$0 >>  fileok ; }' /data/match/cmpp/20111020/stats_month.wuxian_qianxiang.0  12580_zthm.txt
+
+stats_month.wuxian_qianxiang.1000
+awk  -F '[ :\t|,]' -v opt_code=/home/oracle/etl/data/optcode.txt     -v file_oka=/home/oracle/sjz_MZONE.txt  -v file_ok1=/home/oracle/sjz_MZONE_OK.txt '{
+        if(FILENAME == opt_code   )  o[$3]=$5","$7 ;
+          
+         else if(FILENAME == file_oka &&  $2 in o   ) print  $1","o[$2]","$3","$4 >> file_ok1;
+         
+                 
+}' /home/oracle/etl/data/optcode.txt   /home/oracle/shbb_pp_ok.txt
+
+
+awk  -F '[ :\t|,]' -v opt_code=opt_code.txt    -v file_oka=gd_jgs.txt  -v file_ok1=gd_jgs_OK.txt '{
+        if(FILENAME == opt_code   )  o[$2]=$3 ;
+          
+         else if(FILENAME == file_oka &&  $2 in o   ) print  $1","$2","o[$2]","$3"," >> file_ok1;
+         
+                 
+}'   opt_code.txt   gd_jgs.txt
+
+awk  -F '[ :\t|,]' -v opt_code=/home/oracle/neimeng0917.txt      -v file_oka=/home/oracle/nmghlbe_ok.txt  -v file_ok1=/home/oracle/nmghlbe_ok1.txt '{
+        if(FILENAME == opt_code   )  o[$1]=$0 ;
+          
+         else if(FILENAME == file_oka &&  $1 in o   ) print   $1","o[$1]  >> file_ok1;
+         else if(FILENAME == file_oka &&  !($1 in o)   ) print   $1","   >> file_ok1;
+                 
+}' /home/oracle/neimeng0917.txt   /home/oracle/nmghlbe_ok.txt
+
+awk  -F '[ :\t|,]' -v opt_code=/home/oracle/etl/data/opt_gdwz.txt   -v nodist=/data0/match/orig/profile/nodist.tsv  -v file_oka=/home/oracle/gd_wz_20110908.txt -v file_okb=/home/oracle/gd_wz_20110915.txt  -v file_okc=/home/oracle/gd_wz_20110908_td.txt -v file_okd=/home/oracle/gd_wz_20110915_td.txt -v file_ok1=/home/oracle/gd_wz_20110908_ok.txt  -v file_ok2=/home/oracle/gd_wz_20110915_ok.txt -v file_ok3=/home/oracle/gd_wz_20110908_td_ok.txt  -v file_ok4=/home/oracle/gd_wz_20110915_td_ok.txt '{
+        if(FILENAME == opt_code   )  o[$2]=$5 ;
+         else if(FILENAME == nodist  ) n[$4]=$1","$2 ;
+          
+         else if(FILENAME == file_okc &&  $2 in o && substr($1,1,7) in n  ) print  n[substr($1,1,7)]","o[$2]","$0 >> file_ok3;
+         else if(FILENAME == file_okd &&  $2 in o && substr($1,1,7) in n  ) print  n[substr($1,1,7)]","o[$2]","$0 >> file_ok4;
+                 
+}' /home/oracle/etl/data/opt_gdwz.txt /data0/match/orig/profile/nodist.tsv    /home/oracle/gd_wz_20110908_td.txt  /home/oracle/gd_wz_20110915_td.txt
+
+
+V_OPTJFCODE='M100990125843';
+                        OPT=($(echo ${V_OPTJFCODE} | tr ',' ' ' | tr -s ' '))
+                        length=${#OPT[@]}
+                        for ((i=0; i<${length}; i++))
+                        do
+
+       awk  -F '[ :\t|,]' -v CODE_DIR=/data/wuying/zjglyh.txt -v OPTJFCODE=M100990125843 -v file_oka=/data/wuying/zj_user_zxok_gl.txt  -v file_ok1=/data/wuying/zj_user_zxok_gl_ok.txt  '{ if(FILENAME == CODE_DIR    )  d[$1]=$1 ;  else if(FILENAME == file_oka && !($1 in d) ) print  $0 >> file_ok1; }' /data/wuying/zjglyh.txt   /data/wuying/zj_user_zxok_gl.txt
+            done
+
+
+scp -p /data/wuying/boss*_20111206.txt.bz2 oracle@172.16.101.210:/home/oracle/etl/data/
+
+cat /data/wxlog/recommend/recommend.txt | awk -F'[| \t]' '{if (($9==90||$9==93||$9==169) && $13==100) { if($9==90) a="\xce\xa5\xd5\xc22\xd4\xaa"; if($9==93) a="\xce\xa5\xd5\xc25\xd4\xaa";if($9==169) a="\xc6\xfb\xb3\xb5\xb1\xa6\xb5\xe4";if($15==1) b="\xb3\xc9\xb9\xa6";if($15==2) b="\xbe\xdc\xbe\xf8";  print  $17","$3","$11","$17" "$18","a","b}}' > /home/wuying/public_html/zxtj/${DEALDATE2}.csv
+
+
+生活播报 2011_yyhk.txt.bz2
+bzcat /data0/match/orig/20110930/snapshot.txt.bz2 | grep 'SHBB'  |grep '|029|' |awk -F '|' -v first_date='20111001000000' -v begin_date='20111001000000' '{ if( $7==1&& $3 == "06" && $5 < first_date )  print $1","$2","$3","$5",99991230000000" ; else if( $7==1&& $3 == "07" &&  $4 >=begin_date && $5 < first_date ) print $1","$2","$3","$5","$4  }' > sxshbb_09lcxz.txt
+
+awk  -F '[ :\t|,._]' -v opt_code=/home/oracle/etl/data/opt_code_all.txt -v nodist=/data0/match/orig/profile/nodist.tsv    -v file_oka=/home/oracle/all_1-17-19huilao.tsv      -v file_ok1=/home/oracle/all_1-17-19huilao_ok.tsv '{
+        if(FILENAME == opt_code   )  o[$1]=$5 ;
+           else if(FILENAME == nodist   ) n[$4]=$1","$2 ;
+         else if(FILENAME == file_oka &&  $6 in o && substr($1,1,7) in n  ) print   n[substr($1,1,7)]","$1","o[$6]","$3","$4  >> file_ok1;
+         
+                 
+}' /home/oracle/etl/data/opt_code_all.txt   /data0/match/orig/profile/nodist.tsv   /home/oracle/all_1-17-19huilao.tsv 
+
+cd /home/oracle/etl/data/
+ cat  /home/oracle/etl/data/shbb_online_yyxgshbb_ok.txt | awk -F',' '{d=$4;print $1","$2","$3 >> d }'
+
+awk  -F '[ :\t|,]' -v opt_code=/home/oracle/etl/data/opt_code_all.txt -v nodist=/data0/match/orig/profile/nodist.tsv      -v file_oka=/home/oracle/gz_huilao_zxzt.txt   -v file_ok1=/home/oracle/gz_huilao_zxzt_ok.txt  '{
+        if(FILENAME == opt_code   )  o[$1]=$2","$5 ;
+          else if(FILENAME == nodist  ) n[$4]=$1","$2 ;
+         else if(FILENAME == file_oka &&  $2 in o  && substr($1,1,7) in n ) print   $1","$2","n[substr($1,1,7)]","o[$2]","$3","$4 >> file_ok1;
+         
+                 
+}' /home/oracle/etl/data/opt_code_all.txt /data0/match/orig/profile/nodist.tsv   /home/oracle/gz_huilao_zxzt.txt
+
+sxyh_8yjf.txt
+
+bzcat /data0/match/orig/20110831/snapshot.txt.bz2 | grep 'SHBB'  |grep '|029|' | awk -F '|' -v first_date='20110729000000' -v last_date='20110829000000' '{ if ( $3 == "06" && $5 >= first_date && $5 < last_date  ) print $1","$2","$3","$5",99991230000000,xzyh" ; else if ( $3 == "07" &&  $5 >= first_date && $5 < last_date &&  ( $4 - $5 ) > 3000000 ) print $1","$2","$3","$5","$4}' | head
+
+
+awk  -F',' -v CODE_DIR=/data/match/mm7/20110831/stats_month.bizdev_shenghbb.1000 -v fileok=/data/wuying/sxyh_8yjf_qdgok.txt '{ if( FILENAME == CODE_DIR )  d[$1$2]=$1","$2","$3;  else if ( FILENAME != CODE_DIR   &&  $1$2 in d ) print $1","$3","$4","$5","$6","$7   >> fileok ;   }' /data/match/mm7/20110831/stats_month.bizdev_shenghbb.1000    /data/wuying/sxyh_8yjf_ok.txt
+ 12580生活播报优旅行
+bzcat  zhongshan中山号码.txt.bz2   /data0/match/orig/20111213/snapshot.txt.bz2 | awk -F "|" '{if(NF==1&& (substr($6,1,1)="Y"||substr($6,1,1)="y")) {aa[$2]=$1} else {if(  $1 in aa && $14=="SHBB" ) print $0}}'   > xiangjiang_ok.txt 
+06 11 16 1 * bzcat /home/oracle/tc_shbb_dg.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[|]' '{if(NF==1){aa[$1]=$1} else {if (  $14=="SHBB"  && $3 =="06" &&  !($1  in aa) && $8 =="020" && $9)  print $0 }}' | bzip2 > /home/oracle/gd_yyhk_online.txt.bz2
+
+25 21 15 12 * bzcat /home/oracle/gd_22200030.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==1){aa[$1]=$1} else {if (   $2=="2220030" && $3=="06"  && !( $1  in aa )&& $8 =="020")  print $0 }}' | bzip2 > /home/oracle/gd_SHBB_online_un.txt.bz2
+
+20 21 15 12 * bzcat /home/oracle/gd_10511004.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==1){aa[$1]=$1} else {if (  $2=="10511004"  && $3=="06"  && !( $1  in aa )&& $8 =="020")  print $0 }}' | bzip2 > /home/oracle/gd_10511004_online_un.txt.bz2
+
+ bzcat  gd_yyhk_online.txt.bz2 2011_yyhk.txt.bz2    | awk -F'[|]' '{if(NF>4)aa[$1]=$1"|"$14"|"$3"|"$4; else if (NF==3 && $1  in aa )  print aa[$1]"|"$0 >> gd_yyhk_dg.txt ; else if  (NF==3 && !($1  in aa ))  print aa[$1]"|"$0 >> gd_yyhk_dg.txt ; }}' 
+
+
+50 15 22 12 * bzcat /home/oracle/gd_10511004.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==1){aa[$1]=$1} else {if (  $2=="10511004"  && $3=="06"  &&  $1  in aa  && $8 =="020")  print $0 }}' | bzip2 > /home/oracle/gd_10511004_online_in.txt.bz2
+
+55 15 22 12 * bzcat /home/oracle/gd_10511024.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==1){aa[$1]=$1} else {if (  $2=="10511024"  && $3=="06"  &&   $1  in aa  && $8 =="020")  print $0 }}' | bzip2 > /home/oracle/gd_10511024_online_in.txt.bz2
+
+0 16 22 12 * bzcat /home/oracle/gd_22200030.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==1){aa[$1]=$1} else {if (   $2=="2220030" && $3=="06"  &&   $1  in aa  && $8 =="020")  print $0 }}' | bzip2 > /home/oracle/gd_22200030_online_in.txt.bz2
+
+
+08 21 15 12 * bzcat /home/oracle/tc_shbb_dg.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==1){aa[$1]=$1} else {if (  $14=="YYHK"  && $3=="06"  && !( $1  in aa )&& $8 =="020")  print $0 }}' | bzip2 > /home/oracle/gd_YYHK_online_un.txt.bz2
+
+5 16 20 12 * bzcat /home/oracle/gd_11_appcode.txt.bz2   /data0/match/orig/20111201/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==3){aa[$1$2]=$3} else {if ( $1$2  in aa )  print aa[$1$2]","$0 }}' | bzip2 > /home/oracle/gd_11_appcode_in.txt.bz2
+
+5 16 20 12 * bzcat /home/oracle/gd_11_appcode.txt.bz2   /data0/match/orig/20111201/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==3){aa[$1$2]=$3} else {if ( $1$2  in aa )  print aa[$1$2]","$0 }}' | bzip2 > /home/oracle/gd_11_appcode_in.txt.bz2
+
+
+51 20 15 12 * bzcat  zhongshan中山号码.txt.bz2  /data0/match/orig/20111213/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==1){aa[$1]=$1} else {if ( substr($2,1,1)==2 &&  $3=="06"  &&  $1  in aa  ) print $0 }}' | bzip2 > /home/oracle/zhongshan_online.txt.bz2
+55 20 15 12 * bzcat  zhuhai珠海号码.txt.bz2  /data0/match/orig/20111213/snapshot.txt.bz2 | awk -F'[,|]' '{if(NF==1){aa[$1]=$1} else {if ( substr($2,1,1)==2 &&  $3=="06"  &&  $1  in aa  ) print $0 }}' | bzip2 > /home/oracle/zhuhai_online.txt.bz2
+
+bzcat   gd_10_h3t.txt.bz2   /data0/match/new_income/20111130/province_isjf/广东.txt.bz2   |  awk -F ',' '{if(NF==5) {aa[$2$3]=$2","$3","$4} else {if(   $1$2 in aa ) print aa[$1$2]","$0 }}'   > gd_10_h3d_jf.txt  
+bzcat  zhongshan_online.txt.bz2   zhongshan中山号码.txt.bz2 |  awk -F '|' '{if(NF!=1)  {aa[$1]=$1","$2","$3} else  {if (!( $1 in aa )) print  $0 }}'  | bzip2  > zhongshan中山号码_ok.txt.bz2  
+bzcat  zhuhai_online.txt.bz2   zhuhai珠海号码.txt.bz2 |  awk -F ',' '{if(NF!=1)  {aa[$1]=$1","$2","$3} else  {if (!( $1 in aa )) print  $0 }}'  | bzip2  > zhuhai珠海号码_ok.txt.bz2  
+
+bzcat  20111122_771_SHBB_result_22220030.bz2 /logs/20111122/outputumessage_001_meiti_20111122_snapshot.bz2  | awk -F "|" '{if(NF==1) {aa[$1]=0} else {if( $3==06 && $2==22220032 &&  substr($1,1,11) in aa   ) print $1 }}' | bzip2  > 20111122_771_SHBB_result_22220032.bz2  
+
+
+ bzcat  /logs/20111013/outputumessage_001_meiti_20111013_snapshot.bz2 | awk -F "|"  -v date=20111013  '{if($8=="0311"&&$3=="06") print $9,$14,$2,$1,$3,$4,$4,$7}'
+ grep ss_api.php | grep 'CCID=771'
+
+bzcat  /logs/20111024/outputumessage_001_meiti_20111024_snapshot.bz2 | awk -F "|"  -v date=20111124 '{if($8=="025"&&$3=="06") print $1","$2","$4","$14}'
+13911963167	125883	01
+13601357377	125859	01
+13501086612	125821	03
+13811229753	125821	03
+
+ cat /data/wuying/shzen10\xd4\xc2\xbf\xc9\xd3\xc3\xca\xfd\xbe\xdd4096940\xcc\xde\xb3\xfd\xc3\xf4\xb8\xd0\xd3\xe0_20110927_ok.txt  | sort | uniq -c | awk '{if(1>=2) print $2 }' > /data/wuying/shenzen400W_lastok.txt
+cat /data/wuying/B09ZS12\xd6\xd0\xc9\xbd\xc7\xb0\xcf\xf2\xd2\xb5\xce\xf1\xbb\xe1\xc9\xfa\xbb\xee\xb9\xd8\xb0\xae\xcc\xd7\xb2\xcd-\xca\xa1\xcd\xb3B_ok.txt   | sort | uniq -c | awk '{if(1>=2) print $2 }' > /data/wuying/B09ZS12\xd6\xd0\xc9\xbd\xc7\xb0\xcf\xf2\xd2\xb5\xce\xf1\xbb\xe1\xc9\xfa\xbb\xee\xb9\xd8\xb0\xae\xcc\xd7\xb2\xcd-\xca\xa1\xcd\xb3B_lastok.txt
+
+
+
+ awk  -F'[\t,]' -v CODE_DIR=henan回捞成功号码.txt -v fileok=henanhuilao河南_ok.txt '{
+        if( FILENAME == CODE_DIR  )  d[$1]=$1;
+         else if ( FILENAME != CODE_DIR && $5 in d) print $0 >>  fileok ;
+        }' henan回捞成功号码.txt   henanhuilao河南.txt
+
+awk  -F',' -v CODE_DIR=/data0/match/orig/mm7/201111${k}/stats_month.wuxian_qianxiang.0 -v fileok=qx_11-8-11xzyh_ok.txt -v knum=${k}
+ '{
+        if( FILENAME == CODE_DIR  && substr($2,1,3) == "103" )  d[$1$2]=$1","$2","$3;
+         else if ( FILENAME != CODE_DIR && $1$2 in d ) print  d[$1$2]","knum","$0 >>  fileok ;
+         else if ( FILENAME != CODE_DIR && !($1$2 in d) ) print  $1","$2",0,"knum","$0 >>  fileok ;
+         }' /data0/match/orig/mm7/20110831/stats_month.wuxian_qianxiang.0   qx_11-8-11xzyh.txt
+
+
+awk  -F',' -v CODE_DIR=gd_10_h3t.txt  -v fileok=gd_10_h3t_ok.txt '{
+        if( FILENAME == CODE_DIR   )  d[$2$3]=$2","$3","$4;
+         
+         else if ( FILENAME != CODE_DIR && !($1$2 in d) ) print  d[$1$2]$0 >>  fileok ;
+         }' gd_10_h3t.txt   /data0/match/new_income/20111130/province_isjf/广东.txt.bz2
+
+10511004gdyh.txt
+
+/data0/match/new_income/20111130/province_isjf/广东.txt.bz2
+
+
+
+
+ bzcat  /data/wuying/xinjiang_111013.txt.bz2    /data/match/mm7/20111207/outputumessage_001_meiti_20111207_snapshot.bz2 | awk -F "[,|]" '{if( NF==6 && (substr($6,1,1)=="Y"||substr($6,1,1)=="y") ) {aa[$2]=$1 } else {if(  $1 in aa && $14=="SHBB" ) print $0}}'   > xinjiang_ok.txt
+ bzcat   fs_shbb_dg.txt.bz2 fs_shbb_pp.txt.bz2    | awk -F'|' -v file1=fs_shbb_dg_b.txt -v file2=fs_shbb_undg.txt  '{ if( NF !=1 && $3=="06")  aa[$1]=$4 ;else if  ( $1  in aa  )   print  $1","aa[$1] >> file1  ; else if  ( !($1  in aa))   print  $1"," >> file1   }'  
+
+   bzcat  fs_shbb_pp.txt.bz2 /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2  | awk -F'|' -v file1=fs_shbb_dg.txt  '{ if( NF ==1 )  aa[$1]=$1 ; else if ( $14==SHBB && $1  in aa)   print  $0 >> file1   }'  
