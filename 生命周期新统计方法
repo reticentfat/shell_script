@@ -1,0 +1,82 @@
+select t.addr_code,
+       o.opt_cost,
+       case
+         when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 30 then
+          '1个月以下'
+         when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 30 and
+              (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 90 then
+          '1-3个月'
+         when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 90 and
+              (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 180 then
+          '3-6个月'
+  
+         when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 180 and 
+              (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 360 
+               then
+          '6-12个月'
+            when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 360 and 
+              (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 720 then
+              
+          '1年-2年'
+            when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 720 then
+          '2年以上'
+       end onlinetime,
+       count(distinct t.mobile_sn)
+  from new_wireless_subscription_shbb t, opt_code o--, mobilenodist n
+ where t.appcode = o.appcode
+    and t.mobile_sub_state=3 
+   --and substr(t.mobile_sn, 1, 7) = n.beginno(+)
+   and t.mobile_sub_time < to_date('2013-12-20', 'yyyy-mm-dd')
+   and t.mobile_modify_time >= to_date('2013-12-20', 'yyyy-mm-dd')
+/*   and t.appcode in ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511042','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050')--,'10301010','10511004','10511007','10511039','10511043','10301093'*/
+ group by t.addr_code, o.opt_cost, case
+         when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 30 then
+          '1个月以下'
+         when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 30 and
+              (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 90 then
+          '1-3个月'
+         when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 90 and
+              (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 180 then
+          '3-6个月'
+          when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 180 and 
+              (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 360 
+               then
+          '6-12个月'
+            when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 360 and 
+              (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) <= 720 then
+          '1年-2年'
+            when (to_date('2013-12-20', 'yyyy-mm-dd') -
+              to_date(substr(to_char(t.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss'),1,10),'yyyy-mm-dd')) > 720 then
+          '2年以上'
+       end
+       
+       
+       select * from area_province 
