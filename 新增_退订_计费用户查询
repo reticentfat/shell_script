@@ -1,0 +1,43 @@
+select sum(t.on_user_num), t.deal_date
+  from tb_rpt_oper_day t
+ where t.deal_date in
+       ('2014-02-01', '2014-03-01', '2014-04-01', '2014-05-01', '2014-06-01',
+        '2014-07-01', '2014-08-01', '2014-09-01', '2014-10-01', '2014-11-01')
+        group by t.deal_date
+-------------------------------------------
+select t.deal_date,sum(t.jf_user_num),sum(t.jf_user_num*b.fee)
+  from tb_theory_income t,tb_theory_income_base b
+ where t.deal_date in
+       ('2014-02-28', '2014-03-31', '2014-04-30', '2014-05-31', '2014-06-30',
+        '2014-07-31', '2014-08-31', '2014-09-30', '2014-10-31', '2014-01-31')
+       and t.appcode=b.appcode
+       and t.prov_name='山东'
+       and t.
+       group by t.deal_date
+       ---------------------------------------
+       select t.deal_date,t.prov_name,sum(t.num),sum(t.num*t.fee)
+  from tb_theory_income_dianbo t
+ where t.deal_date in
+      ('2014-02-28', '2014-03-31', '2014-04-30', '2014-05-31', '2014-06-30',
+        '2014-07-31', '2014-08-31', '2014-09-30', '2014-10-31', '2014-01-31')
+      group by t.deal_date,t.prov_name
+     --select * from tb_theory_income_dianbo t
+     -------------------------
+     select n.mobile_sn, o.jfcode, '06'
+       from new_wireless_subscription n, jf_1 j,opt_code o
+      where n.mobile_sn = j.mobile
+        and n.appcode = j.job_num
+        and n.mobile_sub_state = '3'
+       and n.appcode = o.appcode
+       -------------------------------------------------------
+       select sum(t.on_user_num), t.deal_date
+  from tb_rpt_oper_day t
+ where t.deal_date in
+       ('2014-02-01', '2014-03-01', '2014-04-01', '2014-05-01', '2014-06-01',
+        '2014-07-01', '2014-08-01', '2014-09-01', '2014-10-01', '2014-11-01')
+        group by t.deal_date
+        -------------
+        select t.prov_name,t.oper_name ,sum(t.new_user_num),sum(t.td_user_num) from tb_rpt_oper_day t
+        where t.deal_date >='2014-12-04'
+        and t.deal_date <='2014-12-10'
+        group by t.prov_name,t.oper_name
