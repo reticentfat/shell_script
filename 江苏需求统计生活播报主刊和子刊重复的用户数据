@@ -1,0 +1,20 @@
+--------首先查询子刊总共的排重用户--------------------
+select count(distinct n.mobile_sn), m.city
+  from new_wireless_subscription_shbb n, mobilenodist m, opt_code_shbb o
+ where  n.appcode = o.appcode and substr(n.mobile_sn, 1, 7) = m.beginno and
+  m.province = '江苏' and o.servcode in ('WEXPO', 'YZLX', 'YYHK', 'DCNEW',
+         'NRZNEW', 'ZSHK', 'MZONE', 'SHJLB
+', 'CFZZ', 'CTX')
+ 
+ and n.mobile_modify_time >= to_date('2014-12-15', 'yyyy-mm-dd') and
+  n.mobile_sub_time < to_date('2014-12-15', 'yyyy-mm-dd')
+ group by m.city
+---------------然后是Tmall时尚周刊和主刊一样的------------
+select count(c.num), c.cit from (select count(n.mobile_sn) num, n.mobile_sn,m.city cit
+  from new_wireless_subscription_shbb n, mobilenodist m, opt_code_shbb o
+ where  n.appcode = o.appcode and substr(n.mobile_sn, 1, 7) = m.beginno and
+  m.province = '江苏' and o.servcode in ('WEXPO', 'SHBB')
+ 
+ and n.mobile_modify_time >= to_date('2014-12-15', 'yyyy-mm-dd') and
+  n.mobile_sub_time < to_date('2014-12-15', 'yyyy-mm-dd')
+ group by m.city,n.mobile_sn) c where c.num=2 group by c.cit
