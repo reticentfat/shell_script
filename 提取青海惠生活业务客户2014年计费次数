@@ -1,0 +1,24 @@
+cat /data0/2014/20140131/qiangxiang_mms_pay_users.txt /data0/2014/20140228/qiangxiang_mms_pay_users.txt /data0/2014/20140331/qiangxiang_mms_pay_users.txt /data0/2014/20140430/qiangxiang_mms_pay_users.txt /data0/2014/20140531/qiangxiang_mms_pay_users.txt /data0/2014/20140630/qiangxiang_mms_pay_users.txt /data0/2014/20140731/qiangxiang_mms_pay_users.txt /data0/2014/20140831/qiangxiang_mms_pay_users.txt /data0/2014/20140930/qiangxiang_mms_pay_users.txt /data0/2014/20141031/qiangxiang_mms_pay_users.txt /data0/2014/20141130/qiangxiang_mms_pay_users.txt /data0/2014/20141231/qiangxiang_mms_pay_users.txt| grep ',971,' | awk -F',' '{if($2=="10511052"||$2=="10511055")print $1","$2  }' | sort |uniq -c | bzip2  > temp.txt.bz2
+下载到本地后匹配
+文件格式如下
+13519700001	10511052	1
+导入jf_1
+控制文件
+LOAD DATA  INFILE 'F:\work\【2015.1.5】法律百科订购关系比对.txt' 
+BADFILE 'F:\work\dingzhi.txt.bad'
+truncate INTO TABLE  jf_1
+FIELDS TERMINATED BY '	' OPTIONALLY ENCLOSED BY '"' 
+ TRAILING NULLCOLS
+( job_num,province,opt_code,opttime,mobile,biz_code,serial,subtime,city,cartype
+ )
+ 然后写sql语句
+ 手机号，手机归属地市，业务名称，2014年总收费次数
+  select  j.job_num 手机号,
+       j.province  手机归属地市,
+        j.opt_code 业务名称,
+       j.opt_code 2014年总收费次数
+     
+  from jf_1 j ,mobilenodist n, opt_code o
+on  substr(j.job_num, 1, 7) = n.beginno
+ and j.opttime=o.appcode
+ and j.opt_code>=3
