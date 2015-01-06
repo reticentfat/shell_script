@@ -1,0 +1,233 @@
+select 
+n.city 地市,
+t.mobile_sn 用户号码,
+o.opt_cost 业务名称,
+case when  o.jfcode in ('-UMGFLZS',
+'-UMGYYZL',
+'-UMGYYBK',
+'-UMGJKSX',
+'-UMGQNZL'
+) then '901808'
+  else '801174'
+  end SP代码 ,
+       o.jfcode 业务代码,
+       to_char(t.prior_time, 'yyyy-mm-dd hh24:mi:ss') 订购时间,
+       to_char(t.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 退订时间
+       
+       
+  from new_wireless_subscription t, mobilenodist n, opt_code o
+ where substr(t.mobile_sn, 1, 7) = n.beginno
+   and n.province = '江西'
+ and t.appcode = o.appcode
+   and t.mobile_sub_time< to_date('2015-01-01', 'yyyy-mm-dd')
+   and t.mobile_sub_time >= to_date('2014-01-01', 'yyyy-mm-dd')
+   and t.mobile_sub_state='3'
+   and o.jfcode in ('125811',
+'1258147',
+'-UMGFLZS',
+'1258146',
+'-UMGYYZL',
+'125812',
+'-UMGYYBK',
+'-UMGJKSX',
+'125813',
+'-UMGQNZL',
+'125847',
+'125820',
+'125821',
+'1258100',
+'125859',
+'125849',
+'1258131',
+'1258130',
+'125873',
+'125872',
+'125874',
+'1258133',
+'125883',
+'125856',
+'125860',
+'125850',
+'1258117'
+)
+union all
+select 
+n.city 地市,
+t.mobile_sn 用户号码,
+o.opt_cost 业务名称,
+case when  o.jfcode in ('-UMGFLZS',
+'-UMGYYZL',
+'-UMGYYBK',
+'-UMGJKSX',
+'-UMGQNZL'
+) then '901808'
+  else '801174'
+  end SP代码 ,
+       o.jfcode 业务代码,
+       to_char(t.prior_time, 'yyyy-mm-dd hh24:mi:ss') 订购时间,
+       to_char(t.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 退订时间
+       
+       
+  from new_wireless_subscription_shbb t, mobilenodist n, opt_code o
+ where substr(t.mobile_sn, 1, 7) = n.beginno
+   and n.province = '江西'
+ and t.appcode = o.appcode
+   and t.mobile_sub_time< to_date('2015-01-01', 'yyyy-mm-dd')
+   and t.mobile_sub_time >= to_date('2014-01-01', 'yyyy-mm-dd')
+   and t.mobile_sub_state='3'
+   and o.jfcode in ('125811',
+'1258147',
+'-UMGFLZS',
+'1258146',
+'-UMGYYZL',
+'125812',
+'-UMGYYBK',
+'-UMGJKSX',
+'125813',
+'-UMGQNZL',
+'125847',
+'125820',
+'125821',
+'1258100',
+'125859',
+'125849',
+'1258131',
+'1258130',
+'125873',
+'125872',
+'125874',
+'1258133',
+'125883',
+'125856',
+'125860',
+'125850',
+'1258117'
+)
+  ---------------------------
+  select 
+
+o.opt_cost 业务名称,
+o.jfcode 业务代码,
+count(t.mobile_sn) "12月在网数据"
+       
+       
+  from new_wireless_subscription t, mobilenodist n, opt_code o
+ where substr(t.mobile_sn, 1, 7) = n.beginno
+   and n.province = '江西'
+ and t.appcode = o.appcode
+   and t.mobile_sub_time< to_date('2015-01-01', 'yyyy-mm-dd')
+   and t.mobile_sub_time >= to_date('2014-12-01', 'yyyy-mm-dd')
+  and t.mobile_sub_state='3'
+   and o.jfcode in ('125811',
+'1258147',
+'-UMGFLZS',
+'1258146',
+'-UMGYYZL',
+'125812',
+'-UMGYYBK',
+'-UMGJKSX',
+'125813',
+'-UMGQNZL',
+'125847',
+'125820',
+'125821',
+'1258100',
+'125859',
+'125849',
+'1258131',
+'1258130',
+'125873',
+'125872',
+'125874',
+'1258133',
+'125883',
+'125856',
+'125860',
+'125850',
+'1258117'
+)
+group by o.opt_cost ,
+o.jfcode 
+union all
+select 
+
+o.opt_cost 业务名称,
+o.jfcode 业务代码,
+count(t.mobile_sn) "12月在网数据"
+       
+       
+  from new_wireless_subscription_shbb t, mobilenodist n, opt_code o
+ where substr(t.mobile_sn, 1, 7) = n.beginno
+   and n.province = '江西'
+ and t.appcode = o.appcode
+   and t.mobile_sub_time< to_date('2015-01-01', 'yyyy-mm-dd')
+   and t.mobile_sub_time >= to_date('2014-12-01', 'yyyy-mm-dd')
+  and t.mobile_sub_state='3'
+   and o.jfcode in ('125811',
+'1258147',
+'-UMGFLZS',
+'1258146',
+'-UMGYYZL',
+'125812',
+'-UMGYYBK',
+'-UMGJKSX',
+'125813',
+'-UMGQNZL',
+'125847',
+'125820',
+'125821',
+'1258100',
+'125859',
+'125849',
+'1258131',
+'1258130',
+'125873',
+'125872',
+'125874',
+'1258133',
+'125883',
+'125856',
+'125860',
+'125850',
+'1258117'
+)
+group by o.opt_cost ,
+o.jfcode 
+-------------------------提取九月底在线十月底在线数据-----------
+bzcat  /data0/match/orig/20140930/snapshot.txt.bz2  | awk -F'|' '{if($8=="0791" && $3=="06" && ($2=="10511022"||$2=="10511004"||$2=="10511005"||$2=="10301085"||$2=="10301009"||$2=="10511050"||$2=="10301010"||$2=="10511051"||$2=="10301079"||$2=="10511003"||$2=="10301063"||$2=="22220038"||$2=="22101026"||$2=="22220040"||$2=="22230034"||$2=="22200030"||$2=="22200041"||$2=="22220037"||$2=="22200040"||$2=="22230035"||$2=="22201038"||$2=="22220039"||$2=="22220033"||$2=="22201035"||$2=="22220032"||$2=="22209061"||$2=="22101025")) print $1","$2","$3","$4}' > /home/oracle/guangxi_shbbzk_0931online.txt
+44 17 5 01 *    bzcat  /data0/match/orig/20141031/snapshot.txt.bz2  | awk -F'|' '{if($8=="0791" && $3=="06" && ($2=="10511022"||$2=="10511004"||$2=="10511005"||$2=="10301085"||$2=="10301009"||$2=="10511050"||$2=="10301010"||$2=="10511051"||$2=="10301079"||$2=="10511003"||$2=="10301063"||$2=="22220038"||$2=="22101026"||$2=="22220040"||$2=="22230034"||$2=="22200030"||$2=="22200041"||$2=="22220037"||$2=="22200040"||$2=="22230035"||$2=="22201038"||$2=="22220039"||$2=="22220033"||$2=="22201035"||$2=="22220032"||$2=="22209061"||$2=="22101025")) print $1","$2",
+"$3","$4}' > /home/oracle/guangxi_shbbzk_1031online.txt
+--------------退订明细-------------------
+59 17 05 01 * bzcat /home/oracle/etl/data/data/snapshot/archives.txt.bz2 | awk -F'[|^]' '{if($3=="0791"  && $(NF-5)>="20140101000000" &&  $(NF-5)<="20150101000000"&&($6=="10511022"||$6=="10511004"||$6=="10511005"||$6=="10301085"||$6=="10301009"||$6=="10511050"||$6=="10301010"||$6=="10511051"||$6=="10301079"||$6=="10511003"||$6=="10301063"||$6=="22220038"||$6=="22101026"||$6=="22220040"||$6=="22230034"||$6=="22200030"||$6=="22200041"||$6=="22220037"||$6=="22200040"||$6=="22230035"||$6=="22201038"||$6=="22220039"||$6=="22220033"||$6=="22201035"||$6=="22220032"||$6=="22209061"||$6=="22101025") ) print $2","$5","$6","$7","$8","$(NF-8) }' | bzip2 > /home/oracle/jiangxi.txt.bz2   
+15079976367	22200030	2012-11-9 19:23	2014-12-31 23:17
+导入jf_1
+控制文件
+LOAD DATA  INFILE 'F:\work\【2015.1.5】法律百科订购关系比对.txt' 
+BADFILE 'F:\work\dingzhi.txt.bad'
+truncate INTO TABLE  jf_1
+FIELDS TERMINATED BY '	' OPTIONALLY ENCLOSED BY '"' 
+ TRAILING NULLCOLS
+( job_num,province,opt_code,opttime,mobile,biz_code,serial,subtime,city,cartype
+ )
+ sql语句如下：
+ select  
+  n.city  地市,
+ j.job_num 手机号,
+      case when  o.jfcode in ('-UMGFLZS',
+'-UMGYYZL',
+'-UMGYYBK',
+'-UMGJKSX',
+'-UMGQNZL'
+) then '901808'
+  else '801174'
+  end SP代码 ,
+       o.opt_cost 业务名称,
+      o.jfcode 业务代码,
+      j.opt_code 业务开通时间,
+      j.opttime 退时间
+     
+  from jf_1 j ,mobilenodist n, opt_code o
+where  substr(j.job_num, 1, 7) = n.beginno
+ and j.opttime=o.appcode
+ --------------然后按月拆分成12个文件---------
+ $ awk -F'\t' '{d=substr($7,6,2)".txt";print $0>>d}' jiangxituiding.txt
