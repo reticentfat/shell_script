@@ -1,0 +1,5 @@
+1首先在http://miscweb2.intra.umessage.com.cn:9999/data/dump/HSH_MMS（此字段为SERVCODE）/下载users.txt.bz2
+字段如下
+18286407684 0851 854 10511052 None None None
+然后按照$5(即区号分组)
+awk  '{if($2=="023") print $5 }' users.txt | sort | uniq -c
