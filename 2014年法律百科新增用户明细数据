@@ -1,0 +1,31 @@
+--先提取截至今天为止在线的-------------
+ select  n.mobile_sn  手机号码,
+ m.province 省份，
+       m.city 地市，
+case
+                      when n.mobile_sub_state = '3' then
+                       '订购中'
+                      else
+                       '已退定'
+                    end 订购状态,
+ to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 开通时间,
+                    to_char(n.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 退订时间,
+                     o.opt_cost 业务名称
+  from new_wireless_subscription n, opt_code o, mobilenodist m
+ where n.appcode = o.appcode
+   and substr(n.mobile_sn, 1, 7) = m.beginno
+   and n.mobile_sub_time >= to_date('2014-01-01', 'yyyy-mm-dd')
+   and n.mobile_sub_time < to_date('2015-01-01', 'yyyy-mm-dd')
+   and n.appcode in ('10301079', '10511051')
+   and n.mobile_sub_state='3'
+   ----------------下边取1月1日至今订购的退订用户---------
+158上crontab上写为
+47 17 09  01 *  bzcat /home/oracle/etl/data/data/snapshot/archives.txt.bz2 | awk -F'[|^]' '{if(($6=="10511051"||$6=="10301079")&&$(NF-11)>="20140101000000"&&$(NF-11)<="20150101000000") print   $2","$3","$4","$6","$5","$7","$8","$(NF-2)","$(
+NF-3)","$(NF-4) }' | bzip2 > /home/oracle/flbk_14yxz_cancle.txt.bz2
+
+下载到本地后用cygwin处理步骤如下
+cat flbk_liaoning_3yuezhijin_cancle.txt | awk -F',' '{print $1",辽宁,"$3",已退定,"$6","$7","$5;}'  > 1.txt
+awk -F'[,]' -v CODE_DIR=nodist.txt '{ if(FILENAME==CODE_DIR) d[$3]=$5; else if( substr($1,1,7) in d)  print $1"\t"$2"\t"d[substr($1,1,7)]"\t"$4"\t"$5"\t"$6"\t"$7}'   nodist.txt 1.txt > 2.txt
+sed -i 's/FLBK_MMS/12580生活播报-法律百科彩信版/g;s/FLZS_SMS/12580生活播报-法律百科短信版/g;' 2.txt
+ -----------------排重-----------------
+cat 2.txt | sort -u > tuiding.txt
