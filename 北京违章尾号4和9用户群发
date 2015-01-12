@@ -1,0 +1,38 @@
+select id codeid, 
+        mobile_sn 手机号,o.opt_cost 业务名称,
+       -- m.city 城市,
+        car_no 车牌,
+       
+        car_type 车型,
+          car_sn 驾驶证,
+        to_char(mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 订购时间 ,
+      to_char(mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 退订时间 
+   from bjwz b, mobilenodist m,opt_code o 
+  where  opt_addr = 'BEIJING' 
+  and b.mobile_sub_state=3  and b.opt_type=o.opt_type 
+    and substr(b.mobile_sn, 1, 7) = m.beginno and m.city='北京' 
+    --and mobile_modify_time > to_date('2011-09-30', 'yyyy-mm-dd')
+    and mobile_sub_time < to_date('2015-01-12', 'yyyy-mm-dd')
+    and (b.car_no like '%4' or b.car_no like '%9' or b.car_no like '%4,%' or b.car_no like '%9,%' )
+    and   upper(substr(b.car_no,1,1)) != 'B' 
+      and b.opt_type !='E_BJ'
+    
+   union 
+   
+    select id codeid, 
+        mobile_sn 手机号,o.opt_cost 业务名称,
+       -- m.city 城市,
+        car_no 车牌,
+      
+        car_type 车型,
+          car_sn 驾驶证,
+        to_char(mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 订购时间 ,
+      to_char(mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 退订时间
+   from bjwz b, mobilenodist m ,opt_code o
+  where opt_addr = 'BEIJING'
+  and b.mobile_sub_state=3  and b.opt_type=o.opt_type 
+    and substr(b.mobile_sn, 1, 7) = m.beginno  and m.city='北京' 
+    --and mobile_modify_time > to_date('2011-09-30', 'yyyy-mm-dd')
+    and mobile_sub_time < to_date('2015-01-12', 'yyyy-mm-dd')
+    and  (b.car_no like '%4?%' or b.car_no like '%9?%')
+    and   upper(substr(b.car_no,1,1)) != 'B'  and b.opt_type !='E_BJ'
