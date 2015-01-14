@@ -1,0 +1,571 @@
+create or replace procedure P_RPT_ALL_MONTH_OPERNAME
+(
+ i_month IN VARCHAR2 --i_month:='2009-03-31' 每月1日生成上月统计 作业传参时间为运行时间减1日。
+)
+
+--获取无线业务前向业务KPI月统计数量
+ is
+       v_thismonth_firstday varchar2(20);
+       v_nextmonth_firstday varchar2(20);
+       v_lastmonth_firstday varchar2(20);
+begin
+ 
+    v_thismonth_firstday := TO_CHAR(TO_DATE(substr(i_month,1,7) ||'-01','YYYY-MM-DD'),'YYYY-MM-DD');
+    v_nextmonth_firstday := TO_CHAR(add_months(TO_DATE(v_thismonth_firstday,'YYYY-MM-DD'),1),'YYYY-MM-DD');
+    v_lastmonth_firstday := TO_CHAR(add_months(TO_DATE(v_thismonth_firstday,'YYYY-MM-DD'),-1),'YYYY-MM-DD');
+   EXECUTE IMMEDIATE 'TRUNCATE TABLE TMP_RPT_ALL_MONTH_OPERNAME'; 
+   DELETE FROM PTJ.TB_RPT_ALL_MONTH_OPERNAME WHERE DEAL_DATE=substr(v_thismonth_firstday,1,7);  
+  
+
+  COMMIT;
+
+--插入前向包月业务用户数
+INSERT INTO TMP_RPT_ALL_MONTH_OPERNAME
+  (PRO_ID, CITY_ID, PRO_NAME, CITY_NAME, OPER_NAME,QXBYYW_USERNO)
+  select a.prov_code, a.city_code,
+         a.prov_name,
+         a.city_name,a.OPER_NAME,
+         case
+           when sum(a.on_user_num) is null then
+            0
+           else
+            sum(a.on_user_num)
+         end
+    from tb_rpt_oper_day a
+   where deal_date = v_thismonth_firstday
+   group by a.prov_code,a.OPER_NAME, a.prov_name, a.city_code, a.city_name
+  union all
+  select a.prov_code,  a.city_code,
+         a.prov_name,
+         a.city_name,a.OPER_NAME,
+         case
+           when sum(a.new_user_num) is null then
+            0
+           else
+            sum(a.new_user_num)
+         end
+    from tb_rpt_oper_day a
+   where a.deal_date >= v_thismonth_firstday
+     and a.deal_date < v_nextmonth_firstday
+   group by a.prov_code,a.OPER_NAME, a.prov_name, a.city_code, a.city_name
+   ;
+commit;
+
+ 
+---插入前向包月计费用户数
+ INSERT INTO TMP_RPT_ALL_MONTH_OPERNAME
+   (PRO_ID, CITY_ID, PRO_NAME, CITY_NAME,OPER_NAME, BYJF_USERNO)
+   select a.prov_code, a.city_code,
+          a.prov_name,
+          a.city_name,a.OPER_NAME,
+          case
+            when sum(a.on_user_num) is null then
+             0
+            else
+             sum(a.on_user_num)
+          end
+     from tb_rpt_oper_day a
+    where deal_date = v_thismonth_firstday
+    group by a.prov_code,a.OPER_NAME, a.prov_name, a.city_code, a.city_name
+    union all
+    select a.prov_code ,  a.city_code  ,a.prov_name  , a.city_name  ,a.OPER_NAME,
+              case when sum(a.jf_user_num) is null then 0 else sum(a.jf_user_num) end  
+                  from tb_rpt_oper_day a
+                 where a.deal_date >=v_thismonth_firstday
+                   and a.deal_date <  v_nextmonth_firstday
+                 group by a.prov_code,a.OPER_NAME, a.prov_name,a.city_code,a.city_name
+      ;
+ commit;
+   
+   ---
+
+--包月非沉默新增计费用户数
+insert into TMP_RPT_ALL_MONTH_OPERNAME
+  ( 
+   pro_id,
+    city_id,
+     pro_name,
+    city_name,
+    OPER_NAME ,
+   BYJFSJ_USERNO --包月新增计费用户数=留存+新增计费用户数
+   )
+    select prov_code,city_code, prov_name, city_name, opt_cost,sum(BYJFSJ_USERNO) BYJFSJ_USERNO from 
+(select a.prov_code,
+          a.prov_name   ,
+          a.city_code  ,
+          a.city_name  ,o.opt_cost,
+          a.jf_user_num   BYJFSJ_USERNO  from tb_theory_income a , opt_code o  where  a.appcode=o.appcode 
+          and  deal_date = TO_CHAR(TO_DATE(v_nextmonth_firstday,'YYYY-MM-DD')-1,'YYYY-MM-DD')  
+
+--union all
+
+--select  '100' prov_code,
+--       province prov_name,
+--       '100' city_code,
+--       province city_name,o.opt_cost,
+--         num     BYJFSJ_USERNO
+--  from  tb_theory_income_year a, opt_code o  where  a.appcode=o.appcode  and deal_date =TO_CHAR(TO_DATE(v_nextmonth_firstday,'YYYY-MM-DD')-1,'YYYY-MM-DD') 
+  )
+ group by  prov_code, prov_name, city_code,city_name,opt_cost;
+COMMIT;
+       
+   
+   
+ ---插入前向点播用户数
+ INSERT INTO TMP_RPT_ALL_MONTH_OPERNAME
+  (PRO_ID, CITY_ID, PRO_NAME, CITY_NAME,OPER_NAME, DB_USERNO)
+     select a.PROV_CODE,a.CITY_CODE,
+       a.PROV_NAME,
+       
+       a.CITY_NAME,a.oper_name_real,
+       count(distinct a.mobile)
+  from tb_theory_income_dianbo a
+ where --deal_date>='2014-11-01' and deal_date <  '2014-11-06'
+  deal_date =TO_CHAR(TO_DATE(v_nextmonth_firstday,'YYYY-MM-DD')-1,'YYYY-MM-DD')  
+ 
+ group by a.PROV_CODE,
+          a.PROV_NAME,
+          a.CITY_CODE,
+          a.CITY_NAME,a.oper_name_real ;
+  
+ /*select prov_code  , city_code  , 
+       province  ,
+       city  , case when opt_type='D001' then '祝福我帮您' when opt_type='D004' then '高考查分' end ,
+       sum(a.JF_USER_NUM)   
+        from  tb_rpt_zfwbn_day a
+          where deal_date >=v_thismonth_firstday and a.opt_type  in ('D001','D004') 
+   and deal_date <  v_nextmonth_firstday-- '2009-04-1' 
+ group by prov_code,  province,city_code,city,opt_type
+ ;*/
+ commit;
+  ---插入前向预估包信息费
+ INSERT INTO TMP_RPT_ALL_MONTH_OPERNAME
+  (PRO_ID, CITY_ID, PRO_NAME, CITY_NAME,OPER_NAME, YG_BYXXF)
+ select a.prov_code  ,a.city_code  ,
+       a.prov_name  ,
+       a.city_name  ,OPER_NAME,
+       sum(CASE WHEN a.oper_code = '1'  THEN  a.on_user_num *3 -- + '全能助理彩信'
+           WHEN a.oper_code = '2'  THEN a.on_user_num *1--'全能助理短信'
+     WHEN a.oper_code = '3'  THEN a.on_user_num *5  --'营养百科彩信'
+     WHEN a.oper_code = '4'  THEN a.on_user_num *3  --'营养百科短信'
+     WHEN a.oper_code = '5'  THEN a.on_user_num *3 --'汽车宝典'
+     WHEN a.oper_code = '8'  THEN a.on_user_num *5  --'掌上折扣短信'
+     WHEN a.oper_code = '9'  THEN a.on_user_num *5 --'掌上折扣彩信'
+     WHEN a.oper_code = '10'  THEN a.on_user_num *3  --'手机书架彩信'
+     WHEN a.oper_code = '11'  THEN a.on_user_num *3 --'家庭理财彩信'
+     WHEN a.oper_code = '12'  THEN a.on_user_num *1  --'生活小贴士短信'
+     WHEN a.oper_code = '13'  THEN a.on_user_num *3 --'生活小贴士彩信'
+      WHEN a.oper_code = '14'  THEN a.on_user_num *1 --'双色球
+     WHEN a.oper_code = '15'  THEN  a.on_user_num *1 -- + '福彩3D'
+     WHEN a.oper_code = '16'  THEN a.on_user_num *1--'福彩7乐彩'
+     WHEN a.oper_code = '17'  THEN a.on_user_num *1 --'体彩大乐透'
+     WHEN a.oper_code = '18'  THEN a.on_user_num *1  --'排列3排列5'
+     WHEN a.oper_code = '19'  THEN a.on_user_num *1 --'体彩7星彩'
+     WHEN a.oper_code = '20'  THEN a.on_user_num *1  --'体彩22选5'
+     WHEN a.oper_code = '21'  THEN a.on_user_num *1 --'体彩29选7'
+     WHEN a.oper_code = '22'  THEN a.on_user_num *3  --'福彩套餐'
+     WHEN a.oper_code = '23'  THEN a.on_user_num *3 --'体彩套餐'
+     WHEN a.oper_code = '24'  THEN a.on_user_num *3  --'百姓视角彩信'
+     WHEN a.oper_code = '25'  THEN a.on_user_num *1 --'百姓视角短信'
+     WHEN a.oper_code = '26'  THEN a.on_user_num *5 --'国学堂彩信'
+     WHEN a.oper_code = '27'  THEN a.on_user_num *3  --'国学堂短信'
+     WHEN a.oper_code = '28'  THEN a.on_user_num *5 --'电影俱乐部彩信'
+     WHEN a.oper_code = '29'  THEN a.on_user_num *3  --'电影俱乐部短信'
+     WHEN a.oper_code = '30'  THEN a.on_user_num *5 --'素质学堂彩信'
+     WHEN a.oper_code = '31'  THEN a.on_user_num *3  --'育儿宝典'
+     WHEN a.oper_code = '32'  THEN a.on_user_num *5 --'职场橙才彩信'
+      WHEN a.oper_code = '33'  THEN a.on_user_num *3 --'优惠券彩信'
+     WHEN a.oper_code = '34'  THEN a.on_user_num *2 --'就业招聘短信'
+     WHEN a.oper_code = '35'  THEN a.on_user_num *5 --'法律百科短信'
+     WHEN a.oper_code = '36'  THEN a.on_user_num *3 --'走向职场'
+     WHEN a.oper_code = 'A'  THEN a.on_user_num *1 --'北京违章1元'
+     WHEN a.oper_code = 'B'  THEN a.on_user_num *0.83 --'北京违章10元'
+     WHEN a.oper_code = 'C'  THEN a.on_user_num *2 --'北京违章2元'
+     WHEN a.oper_code = 'D'  THEN a.on_user_num *1.25 --'北京违章15元'
+     WHEN a.oper_code = 'E'  THEN a.on_user_num *3 --' 违章 3元'    
+     WHEN a.oper_code = 'F5'  THEN a.on_user_num *5 --'违章5元'     
+      WHEN a.oper_code = 'E_BJ'  THEN a.on_user_num *5 --'北京违章5元' 
+     WHEN a.oper_code = 'Y14'  THEN a.on_user_num *0.83  --''双色球10元包年'
+     WHEN a.oper_code = 'Y15'  THEN a.on_user_num *0.83  --''福彩3D10元包年'   
+     WHEN a.oper_code = 'Y16'  THEN a.on_user_num *0.83--'福彩7乐彩10元包年'
+     WHEN a.oper_code = 'Y17'  THEN a.on_user_num *0.83 --'体彩大乐透10元包年'
+     WHEN a.oper_code = 'Y18'  THEN a.on_user_num *0.83  --'排列3排列510元包年'
+     WHEN a.oper_code = 'Y19'  THEN a.on_user_num *0.83 --'体彩7星彩10元包年'
+     WHEN a.oper_code = 'Y20'  THEN a.on_user_num *0.83  --'体彩22选510元包年'
+     WHEN a.oper_code = 'Y21'  THEN a.on_user_num *0.83 --'体彩29选710元包年'
+     WHEN a.oper_code = '37'  THEN a.on_user_num *2 --'世博汇'
+     WHEN a.oper_code = '38'  THEN a.on_user_num *2 --'开心生活短信'
+     WHEN a.oper_code = '39'  THEN a.on_user_num *3 --'开心生活彩信'
+     WHEN a.oper_code = '40'  THEN a.on_user_num *3 --'民俗百科短信'
+     WHEN a.oper_code = '41'  THEN a.on_user_num *3 --'民俗百科彩信'
+     WHEN a.oper_code = '42'  THEN a.on_user_num *3 --'营养助理短信'  
+     WHEN a.oper_code = '43'  THEN a.on_user_num *5 --'营养管家短信'  
+     WHEN a.oper_code = '44'  THEN a.on_user_num *8 --'营养博士短信'  
+     WHEN a.oper_code = '45'  THEN a.on_user_num *3 --'多彩气象彩信'  
+     WHEN a.oper_code = '46'  THEN a.on_user_num *1 --'今日关注'  
+     WHEN a.oper_code = '47'  THEN a.on_user_num *3 --'健康小管家' 
+     WHEN a.oper_code = '48'  THEN a.on_user_num *5  --考务资讯短信
+     WHEN a.oper_code = '49'  THEN a.on_user_num *2  --生活一点通短信
+     WHEN a.oper_code = '50'  THEN a.on_user_num *3   --生活一点通彩信
+     WHEN a.oper_code = '51'  THEN a.on_user_num *2    --健康随行短信
+     WHEN a.oper_code = '52'  THEN a.on_user_num *2.5   --全能助理彩信半年包
+     WHEN a.oper_code = '53'  THEN a.on_user_num *4   --营养百科彩信半年包 
+     WHEN a.oper_code = '54'  THEN a.on_user_num *3  --法律助手短信
+     WHEN a.oper_code = '55'  THEN a.on_user_num *3   --书友会短信
+     WHEN a.oper_code = '56'  THEN a.on_user_num *3    --健康之友短信
+     WHEN a.oper_code = '57'  THEN a.on_user_num *5   --天天竞彩彩信
+     WHEN a.oper_code = '58'  THEN a.on_user_num *3   --彩票及时通短信
+     WHEN a.oper_code = '59'  THEN a.on_user_num *5   --彩票大赢家短信
+     WHEN a.oper_code = '61'  THEN a.on_user_num *2   --求职通短信
+       WHEN a.oper_code = '62'  THEN a.on_user_num *2   --美食顾问短信
+       WHEN a.oper_code = '63'  THEN a.on_user_num *3   --美食顾问彩信
+       WHEN a.oper_code = '64'  THEN a.on_user_num *2    --第八频道短信  64
+      WHEN a.oper_code = '65'  THEN a.on_user_num *5     --票务在线  65
+       WHEN a.oper_code = '67'  THEN a.on_user_num *1     --折扣俱乐部短信  67
+      WHEN a.oper_code = '68'  THEN a.on_user_num *1      --短信折扣券  68
+      WHEN a.oper_code = '69'  THEN a.on_user_num *2     --公积金查询短信  69
+      WHEN a.oper_code = '70'  THEN a.on_user_num *2    ---折扣俱乐部彩信  70
+      WHEN a.oper_code = '71'  THEN a.on_user_num *5    --电子优惠券短信
+      WHEN a.oper_code = '72'  THEN a.on_user_num *5    --12580航班信息查询短信
+      WHEN a.oper_code = '73'  THEN a.on_user_num *2.5  --营养百科短信半年包
+      WHEN a.oper_code = '75'  THEN a.on_user_num *3    --亚运百科彩信
+      WHEN a.oper_code = '76'  THEN a.on_user_num *3    --12580求职通短信
+      WHEN a.oper_code = '77'  THEN a.on_user_num *3    --财汇天下短信
+      WHEN a.oper_code = '78'  THEN a.on_user_num *5    --财汇天下彩信
+      WHEN a.oper_code = '79'  THEN a.on_user_num *5    --12580红酒俱乐部彩信
+      WHEN a.oper_code = '81'  THEN a.on_user_num *8    --12580生活播报-健康宝典彩信版
+      WHEN a.oper_code = '82'  THEN a.on_user_num *5    --法律百科彩信
+      WHEN a.oper_code = '83'  THEN a.on_user_num *3    --惠生活彩信
+      WHEN a.oper_code = '84'  THEN a.on_user_num *5    --惠生活彩信5元
+       WHEN a.oper_code = 'F8'  THEN a.on_user_num *8    --湖南车行指南
+       WHEN a.oper_code = 'F10'  THEN a.on_user_num *10    --湖南手机路况
+       when a.oper_code = '86'  THEN a.on_user_num *8 --手机医疗-中医健康彩信
+       when a.oper_code = '87'  THEN a.on_user_num *3 --手机医疗-宠物医生彩信
+       when a.oper_code = '88'  THEN a.on_user_num *3 --手机医疗-新生活彩信
+       when a.oper_code = '89'  THEN a.on_user_num *1 --手机医疗-名家说药彩信
+       when a.oper_code = '90'  THEN a.on_user_num *10 --手机医疗-名家专科彩信
+       when a.oper_code = '91'  THEN a.on_user_num *15 --手机医疗-患者关怀彩信
+         when a.oper_code = '92'  THEN a.on_user_num *5 --手机医疗-医学快讯彩信
+         when a.oper_code = '93'  THEN a.on_user_num *3 --手机医疗-亲子家园彩信
+         when a.oper_code = '94'  THEN a.on_user_num *5 --手机医疗-安全用药彩信
+         when a.oper_code = '96'  THEN a.on_user_num *5 --手机医疗-中医健康短信
+         when a.oper_code = '97'  THEN a.on_user_num *3 --手机医疗-经络养生短信
+          when a.oper_code = '98'  THEN a.on_user_num *2 --手机医疗-健康小助手短信
+          when a.oper_code = '99'  THEN a.on_user_num *3 --手机医疗-健康养生短信
+          when a.oper_code = '100'  THEN a.on_user_num *3 --手机医疗-时尚健康短信
+          when a.oper_code = '101'  THEN a.on_user_num *3 --手机医疗-养生指南短信
+          when a.oper_code = '102'  THEN a.on_user_num *2 --手机医疗-新农村合作医疗短信
+          when a.oper_code = '103'  THEN a.on_user_num *10 --手机医疗-名家专科短信
+           when a.oper_code = '105'  THEN a.on_user_num *15 --手机医疗-患者关怀短信
+           when a.oper_code = '106'  THEN a.on_user_num *3 --手机医疗-健康自测短信
+           when a.oper_code = '107'  THEN a.on_user_num *15 --手机医疗-患者随访短信
+           when a.oper_code = '108'  THEN a.on_user_num *3 --手机医疗-育儿知识短信
+           when a.oper_code = '110'  THEN a.on_user_num *3 --手机医疗-红十字短信
+           when a.oper_code = '111'  THEN a.on_user_num *5 --手机商界-商务专刊包月彩信
+           when a.oper_code = '113'  THEN a.on_user_num *15 --手机商界-商情慧眼包月短信
+           when a.oper_code = '114'  THEN a.on_user_num *2 --手机商界-商务简讯短信
+           when a.oper_code = '116'  THEN a.on_user_num *2 --手机商界-商业会刊?彩信
+           when a.oper_code = '117'  THEN a.on_user_num *3 --手机商界-致富商讯包月短信
+           when a.oper_code = '118'  THEN a.on_user_num *25 --手机商界-钢铁快报彩信
+           when a.oper_code = '119'  THEN a.on_user_num *20 --手机商界-化工快报彩信
+     WHEN a.oper_code is null  THEN 0  --'其他' 
+     end)   
+       from tb_rpt_oper_day a 
+       where deal_date= v_thismonth_firstday 
+ group by a.prov_code,a.OPER_NAME, a.prov_name , a.city_code ,a.city_name
+ union all
+ select a.prov_code  , a.city_code  ,
+       a.prov_name  ,
+       a.city_name  ,a.OPER_NAME,
+      sum( CASE WHEN a.oper_code = '1'  THEN  a.jf_user_num *3 -- + '全能助理彩信'
+           WHEN a.oper_code = '2'  THEN a.jf_user_num *1--'全能助理短信'
+     WHEN a.oper_code = '3'  THEN a.jf_user_num *5  --'营养百科彩信'
+     WHEN a.oper_code = '4'  THEN a.jf_user_num *3  --'营养百科短信'
+     WHEN a.oper_code = '5'  THEN a.jf_user_num *3 --'汽车宝典'
+     WHEN a.oper_code = '8'  THEN a.jf_user_num *5  --'掌上折扣短信'
+     WHEN a.oper_code = '9'  THEN a.jf_user_num *5 --'掌上折扣彩信'
+     WHEN a.oper_code = '10'  THEN a.jf_user_num *3  --'手机书架彩信'
+     WHEN a.oper_code = '11'  THEN a.jf_user_num *3 --'家庭理财彩信'
+     WHEN a.oper_code = '12'  THEN a.jf_user_num *1  --'生活小贴士短信'
+     WHEN a.oper_code = '13'  THEN a.jf_user_num *3 --'生活小贴士彩信' 
+     WHEN a.oper_code = '14'  THEN a.jf_user_num *1 --'双色球
+     WHEN a.oper_code = '15'  THEN  a.jf_user_num *1 -- + '福彩3D'
+     WHEN a.oper_code = '16'  THEN a.jf_user_num *1--'福彩7乐彩'
+     WHEN a.oper_code = '17'  THEN a.jf_user_num *1 --'体彩大乐透'
+     WHEN a.oper_code = '18'  THEN a.jf_user_num *1  --'排列3排列5'
+     WHEN a.oper_code = '19'  THEN a.jf_user_num *1 --'体彩7星彩'
+     WHEN a.oper_code = '20'  THEN a.jf_user_num *1  --'体彩22选5'
+     WHEN a.oper_code = '21'  THEN a.jf_user_num *1 --'体彩29选7'
+     WHEN a.oper_code = '22'  THEN a.jf_user_num *3  --'福彩套餐'
+     WHEN a.oper_code = '23'  THEN a.jf_user_num *3 --'体彩套餐'
+     WHEN a.oper_code = '24'  THEN a.jf_user_num *3  --'百姓视角彩信'
+     WHEN a.oper_code = '25'  THEN a.jf_user_num *1 --'百姓视角短信'
+     WHEN a.oper_code = '26'  THEN a.jf_user_num *5 --'国学堂彩信'
+     WHEN a.oper_code = '27'  THEN a.jf_user_num *3  --'国学堂短信'
+     WHEN a.oper_code = '28'  THEN a.jf_user_num *5 --'电影俱乐部彩信'
+     WHEN a.oper_code = '29'  THEN a.jf_user_num *3  --'电影俱乐部短信'
+     WHEN a.oper_code = '30'  THEN a.jf_user_num *5 --'素质学堂彩信'
+     WHEN a.oper_code = '31'  THEN a.jf_user_num *3  --'育儿宝典'
+     WHEN a.oper_code = '32'  THEN a.jf_user_num *5 --'职场橙才彩信'
+     WHEN a.oper_code = '33'  THEN a.jf_user_num *3 --'优惠券彩信'
+     WHEN a.oper_code = '34'  THEN a.jf_user_num *2 --'就业招聘短信'
+   WHEN a.oper_code = '35'  THEN a.jf_user_num *5 --'法律百科短信'
+     WHEN a.oper_code = '36'  THEN a.jf_user_num *3 --'走向职场'
+      WHEN a.oper_code = 'A'  THEN a.jf_user_num *1 --'北京违章1元'
+     WHEN a.oper_code = 'B'  THEN a.jf_user_num *0.83 --'北京违章10元'
+     WHEN a.oper_code = 'C'  THEN a.jf_user_num *2 --'北京违章2元'
+     WHEN a.oper_code = 'D'  THEN a.jf_user_num *1.25 --'北京违章15元'
+      WHEN a.oper_code = 'E'  THEN a.jf_user_num *3 --' 违章 3元'    
+     WHEN a.oper_code = 'F5'  THEN a.jf_user_num *5 --' 违章5元'   
+      WHEN a.oper_code = 'E_BJ'  THEN a.jf_user_num *5 --'北京违章5元' 
+      WHEN a.oper_code = 'Y14' THEN a.jf_user_num *0.83  --''双色球10元包年'
+     WHEN a.oper_code = 'Y15'  THEN a.jf_user_num *0.83  --''福彩3D10元包年'   
+      WHEN a.oper_code = 'Y16' THEN a.jf_user_num *0.83--'福彩7乐彩10元包年'
+     WHEN a.oper_code = 'Y17'  THEN a.jf_user_num *0.83 --'体彩大乐透10元包年'
+     WHEN a.oper_code = 'Y18'  THEN a.jf_user_num *0.83  --'排列3排列510元包年'
+     WHEN a.oper_code = 'Y19'  THEN a.jf_user_num *0.83 --'体彩7星彩10元包年'
+     WHEN a.oper_code = 'Y20'  THEN a.jf_user_num *0.83  --'体彩22选510元包年'
+     WHEN a.oper_code = 'Y21'  THEN a.jf_user_num *0.83 --'体彩29选710元包年'
+     WHEN a.oper_code = '37'  THEN a.jf_user_num *2 --'世博汇'
+     WHEN a.oper_code = '38'  THEN a.jf_user_num *2 --'开心生活短信'
+     WHEN a.oper_code = '39'  THEN a.jf_user_num *3 --'开心生活彩信'
+     WHEN a.oper_code = '40'  THEN a.jf_user_num *3 --'民俗百科短信'
+     WHEN a.oper_code = '41'  THEN a.jf_user_num *3 --'民俗百科彩信'
+     WHEN a.oper_code = '42'  THEN a.jf_user_num *3 --'营养助理短信'  
+     WHEN a.oper_code = '43'  THEN a.jf_user_num *5 --'营养管家短信'  
+     WHEN a.oper_code = '44'  THEN a.jf_user_num *8 --'营养博士短信'  
+     WHEN a.oper_code = '45'  THEN a.jf_user_num *3 --'多彩气象彩信'  
+      WHEN a.oper_code = '46'  THEN a.jf_user_num *1 --'今日关注'  
+      WHEN a.oper_code = '47'  THEN a.jf_user_num *3 --'健康小管家' 
+     WHEN a.oper_code = '48'  THEN a.jf_user_num *5  --考务资讯短信
+     WHEN a.oper_code = '49'  THEN a.jf_user_num *2  --生活一点通短信
+     WHEN a.oper_code = '50'  THEN a.jf_user_num *3   --生活一点通彩信
+     WHEN a.oper_code = '51'  THEN a.jf_user_num *2    --健康随行短信
+     WHEN a.oper_code = '52'  THEN a.jf_user_num *2.5   --全能助理彩信半年包
+     WHEN a.oper_code = '53'  THEN a.jf_user_num *4   --营养百科彩信半年包 
+     WHEN a.oper_code = '54'  THEN a.jf_user_num *3  --法律助手短信
+     WHEN a.oper_code = '55'  THEN a.jf_user_num *3   --书友会短信
+     WHEN a.oper_code = '56'  THEN a.jf_user_num *3    --健康之友短信
+     WHEN a.oper_code = '57'  THEN a.jf_user_num *5   --天天竞彩彩信
+     WHEN a.oper_code = '58'  THEN a.jf_user_num *3   --彩票及时通短信
+     WHEN a.oper_code = '59'  THEN a.jf_user_num*5   --彩票大赢家短信
+     WHEN a.oper_code = '61'  THEN a.jf_user_num *2   --求职通短信
+       WHEN a.oper_code = '62'  THEN a.jf_user_num *2   --美食顾问短信
+       WHEN a.oper_code = '63'  THEN a.jf_user_num *3   --美食顾问彩信
+       WHEN a.oper_code = '64'  THEN a.jf_user_num *2    --第八频道短信  64
+      WHEN a.oper_code = '65'  THEN a.jf_user_num *5     --票务在线  65
+       WHEN a.oper_code = '67'  THEN a.jf_user_num *1     --折扣俱乐部短信  67
+      WHEN a.oper_code = '68'  THEN a.jf_user_num *1      --短信折扣券  68
+      WHEN a.oper_code = '69'  THEN a.jf_user_num *2     --公积金查询短信  69
+      WHEN a.oper_code = '70'  THEN a.jf_user_num *2    ---折扣俱乐部彩信  70
+      WHEN a.oper_code = '71'  THEN a.jf_user_num *5    --电子优惠券短信
+      WHEN a.oper_code = '72'  THEN a.jf_user_num *5    --12580航班信息查询短信
+      WHEN a.oper_code = '73'  THEN a.jf_user_num *2.5  --营养百科短信半年包
+      WHEN a.oper_code = '75'  THEN a.jf_user_num *3    --亚运百科彩信
+      WHEN a.oper_code = '76'  THEN a.jf_user_num *3    --12580求职通短信
+      WHEN a.oper_code = '77'  THEN a.jf_user_num *3    --财汇天下短信
+      WHEN a.oper_code = '78'  THEN a.jf_user_num *5    --财汇天下彩信
+      WHEN a.oper_code = '79'  THEN a.jf_user_num *5    --12580红酒俱乐部彩信
+       WHEN a.oper_code = '81'  THEN a.jf_user_num *8    --12580生活播报-健康宝典彩信版
+      WHEN a.oper_code = '82'  THEN a.jf_user_num *5    --法律百科彩信
+      WHEN a.oper_code = '83'  THEN a.jf_user_num *3    --惠生活彩信
+      WHEN a.oper_code = '84'  THEN a.jf_user_num *5    --惠生活彩信5元
+     WHEN a.oper_code = 'F8'  THEN a.jf_user_num *8    --湖南车行指南
+       WHEN a.oper_code = 'F10'  THEN a.jf_user_num *10    --湖南手机路况
+       when a.oper_code = '86'  THEN a.on_user_num *8 --手机医疗-中医健康彩信
+       when a.oper_code = '87'  THEN a.on_user_num *3 --手机医疗-宠物医生彩信
+       when a.oper_code = '88'  THEN a.on_user_num *3 --手机医疗-新生活彩信
+       when a.oper_code = '89'  THEN a.on_user_num *1 --手机医疗-名家说药彩信
+       when a.oper_code = '90'  THEN a.on_user_num *10 --手机医疗-名家专科彩信
+       when a.oper_code = '91'  THEN a.on_user_num *15 --手机医疗-患者关怀彩信
+         when a.oper_code = '92'  THEN a.on_user_num *5 --手机医疗-医学快讯彩信
+         when a.oper_code = '93'  THEN a.on_user_num *3 --手机医疗-亲子家园彩信
+         when a.oper_code = '94'  THEN a.on_user_num *5 --手机医疗-安全用药彩信
+         when a.oper_code = '96'  THEN a.on_user_num *5 --手机医疗-中医健康短信
+         when a.oper_code = '97'  THEN a.on_user_num *3 --手机医疗-经络养生短信
+          when a.oper_code = '98'  THEN a.on_user_num *2 --手机医疗-健康小助手短信
+          when a.oper_code = '99'  THEN a.on_user_num *3 --手机医疗-健康养生短信
+          when a.oper_code = '100'  THEN a.on_user_num *3 --手机医疗-时尚健康短信
+          when a.oper_code = '101'  THEN a.on_user_num *3 --手机医疗-养生指南短信
+          when a.oper_code = '102'  THEN a.on_user_num *2 --手机医疗-新农村合作医疗短信
+          when a.oper_code = '103'  THEN a.on_user_num *10 --手机医疗-名家专科短信
+           when a.oper_code = '105'  THEN a.on_user_num *15 --手机医疗-患者关怀短信
+           when a.oper_code = '106'  THEN a.on_user_num *3 --手机医疗-健康自测短信
+           when a.oper_code = '107'  THEN a.on_user_num *15 --手机医疗-患者随访短信
+           when a.oper_code = '108'  THEN a.on_user_num *3 --手机医疗-育儿知识短信
+           when a.oper_code = '110'  THEN a.on_user_num *3 --手机医疗-红十字短信
+           when a.oper_code = '111'  THEN a.on_user_num *5 --手机商界-商务专刊包月彩信
+           when a.oper_code = '113'  THEN a.on_user_num *15 --手机商界-商情慧眼包月短信
+           when a.oper_code = '114'  THEN a.on_user_num *2 --手机商界-商务简讯短信
+           when a.oper_code = '116'  THEN a.on_user_num *2 --手机商界-商业会刊?彩信
+           when a.oper_code = '117'  THEN a.on_user_num *3 --手机商界-致富商讯包月短信
+           when a.oper_code = '118'  THEN a.on_user_num *25 --手机商界-钢铁快报彩信
+           when a.oper_code = '119'  THEN a.on_user_num *20 --手机商界-化工快报彩信
+     WHEN a.oper_code is null  THEN 0  --'其他' 
+     end)  
+       from tb_rpt_oper_day a  
+ where  
+ a.deal_date >=v_thismonth_firstday
+   and a.deal_date <  v_nextmonth_firstday
+ group by a.prov_code,a.OPER_NAME,  a.prov_name,a.city_code ,a.city_name;
+ commit;
+  ---插入非沉默前向预估实际包月信息费(元) 本周前向预估包月信息费(元)=截止统计日前向预估包月信息费-截止上周前向预估包月信息费
+insert into TMP_RPT_ALL_MONTH_OPERNAME
+  (PRO_ID, CITY_ID, PRO_NAME, CITY_NAME,OPER_NAME,SJ_BYXXF
+   
+     --预估包月信息费
+   )
+select  v_city_name,v_city_code,
+        v_prov_code,
+      v_prov_name, opt_cost ,sum(sj_byxxf) from 
+(select a.v_city_name,
+       a.v_prov_code,
+       a.v_city_code,
+       a.v_prov_name,b.opt_cost,
+       a.v_new_user_num  sj_byxxf
+  from table(umg_stat_new.StatTheoryIncomeInfo(TO_CHAR(TO_DATE(v_nextmonth_firstday,'YYYY-MM-DD')-1,'YYYY-MM-DD'),
+                                               '901808',
+                                               '999',
+                                               '所有业务',
+                                               '2')) a , opt_code b where a.V_PX_USER_NUM=b.appcode 
+ union all
+select c.v_city_name,
+       c.v_prov_code,
+       c.v_city_code,
+       c.v_prov_name,b.opt_cost,
+        c.v_new_user_num  sj_byxxf
+  from table(umg_stat_new.StatTheoryIncomeInfo(TO_CHAR(TO_DATE(v_nextmonth_firstday,'YYYY-MM-DD')-1,'YYYY-MM-DD'),
+                                               '801174',
+                                               '999',
+                                               '所有业务',
+                                               '2')) c  , opt_code b where c.V_PX_USER_NUM=b.appcode 
+--  union all
+--select  '100' v_city_name,
+--       province v_prov_code,
+--       '100' v_city_code,
+--       province   v_prov_name, b.opt_cost,
+--       num*e.fee  sj_byxxf
+--  from  tb_theory_income_year e,  opt_code b where e.appcode = b.appcode and deal_date =TO_CHAR(TO_DATE(v_nextmonth_firstday,'YYYY-MM-DD')-1,'YYYY-MM-DD') 
+  ) m
+group by  v_prov_code,  v_prov_name, v_city_code,  v_city_name, opt_cost ;
+
+ commit;
+   ---插入前向预估点播息费
+ INSERT INTO TMP_RPT_ALL_MONTH_OPERNAME
+  (PRO_ID, CITY_ID, PRO_NAME, CITY_NAME,OPER_NAME, YG_DBXXF)
+  select a.PROV_CODE, a.CITY_CODE,
+       a.PROV_NAME,
+       a.CITY_NAME,a.oper_name_real,
+       sum(nvl(num,0)*a.fee)  
+  from tb_theory_income_dianbo a
+ where  --deal_date>='2014-11-01' and deal_date <  '2014-11-06'
+    deal_date =  TO_CHAR(TO_DATE(v_nextmonth_firstday,'YYYY-MM-DD')-1,'YYYY-MM-DD')
+ group by a.PROV_CODE,
+          a.PROV_NAME,
+          a.CITY_CODE,
+          a.CITY_NAME,a.oper_name_real 
+          ;
+  
+  
+ /* select prov_code  ,   city_code  ,
+       province  ,  city  , case when opt_type='D001' then '祝福我帮您' when opt_type='D004' then '高考查分' end ,
+       sum(a.suc_jf_times)   
+        from  tb_rpt_zfwbn_day a
+          where deal_date >=v_thismonth_firstday and a.opt_type   in ('D001','D004') 
+   and deal_date <  v_nextmonth_firstday-- '2009-04-1'
+ group by prov_code,  province,city_code,city,opt_type;
+ */
+  commit;
+  
+ 
+--插入分市统计
+INSERT INTO TB_RPT_ALL_MONTH_OPERNAME
+(
+  PRO_ID ,     
+  CITY_ID  ,   
+  PRO_NAME   , 
+  CITY_NAME   , OPER_NAME,
+  QXBYYW_USERNO ,
+  BYJF_USERNO  ,
+  DB_USERNO ,  
+  YG_BYXXF ,   
+  YG_DBXXF ,
+  byjfsj_userno,
+  sj_byxxf,
+  DEAL_DATE
+)
+select pro_id,city_id,
+       pro_name,  city_name,  OPER_NAME,
+       SUM(QXBYYW_USERNO),
+       SUM(BYJF_USERNO),
+       SUM(DB_USERNO),
+       SUM(YG_BYXXF),
+       SUM(YG_DBXXF),
+       SUM(byjfsj_userno),
+       SUM(SJ_BYXXF),
+       substr(v_thismonth_firstday,1,7)
+from TMP_RPT_ALL_MONTH_OPERNAME
+  group by 
+  pro_id, 
+       pro_name,
+       city_id,OPER_NAME,
+       city_name  ;
+COMMIT;
+--插入广东违章
+P_RPT_ALL_MONTH_OPERNAME_GDWZ(i_month);
+--插入广东违章分市统计
+INSERT INTO TB_RPT_ALL_MONTH_OPERNAME
+(
+  PRO_ID ,     
+  CITY_ID  ,   
+  PRO_NAME   , 
+  CITY_NAME   , OPER_NAME,
+  QXBYYW_USERNO ,
+  BYJF_USERNO  ,
+  DB_USERNO ,  
+  YG_BYXXF ,   
+  YG_DBXXF ,
+  DEAL_DATE
+)
+select pro_id,city_id,
+       pro_name,  city_name,  OPER_NAME,
+       SUM(QXBYYW_USERNO),
+       SUM(BYJF_USERNO),
+       SUM(DB_USERNO),
+       SUM(YG_BYXXF),
+       SUM(YG_DBXXF),
+       substr(v_thismonth_firstday,1,7)
+from TMP_RPT_ALL_MONTH_OPERNAME
+  group by 
+  pro_id, 
+       pro_name,
+       city_id,OPER_NAME,
+       city_name  ;
+COMMIT;
+--删除服务项目为空号码
+delete  from TB_RPT_ALL_MONTH_OPERNAME where oper_name is null ;
+  COMMIT;
+--插入全国合计
+INSERT INTO TB_RPT_ALL_MONTH_OPERNAME
+(
+  PRO_ID ,     
+  PRO_NAME   , 
+  CITY_NAME   ,OPER_NAME,
+  QXBYYW_USERNO ,
+  BYJF_USERNO  ,
+  DB_USERNO ,  
+  YG_BYXXF ,   
+  YG_DBXXF ,
+  byjfsj_userno,
+  sj_byxxf,
+  DEAL_DATE
+)
+select '999' PRO_ID,'全国合计' PRO_NAME,'全国合计' CITY_NAME, OPER_NAME, sum(QXBYYW_USERNO) QXBYYW_USERNO ,sum(BYJF_USERNO) BYJF_USERNO,sum(DB_USERNO) DB_USERNO
+,sum(YG_BYXXF) YG_BYXXF,sum(YG_DBXXF) YG_DBXXF,  sum(byjfsj_userno) byjfsj_userno,
+  sum(sj_byxxf) byjfsj_userno, deal_date from TB_RPT_ALL_MONTH_OPERNAME where deal_date=substr(v_thismonth_firstday,1,7)
+group by OPER_NAME,deal_date;
+COMMIT;
+
+end P_RPT_ALL_MONTH_OPERNAME;
+
+ 
