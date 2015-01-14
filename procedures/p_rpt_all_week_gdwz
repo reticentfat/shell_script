@@ -1,0 +1,190 @@
+create or replace procedure P_RPT_ALL_WEEK_GDWZ
+(
+ i_begin_date IN VARCHAR2, --i_begin_date:='2009-03-05'  。
+ i_end_date   IN VARCHAR2  --i_end_date:='2009-03-11' 传系统运行时间，赋值运行时间-1天    每周（2009-03-12）四运行生成上周统计 作业传参时间为运行时间减7日
+
+)
+
+--获取无线业务前向业务KPI月统计数量
+ is
+       v_thisweek_firstday varchar2(20);
+       v_thisweek_lastday varchar2(20);
+       v_thisweek_lastday_T  varchar2(20);
+       v_thismonth_firstday varchar2(20);
+begin
+
+    v_thisweek_firstday := TO_CHAR(TO_DATE(i_begin_date,'YYYY-MM-DD'),'YYYY-MM-DD');
+    v_thisweek_lastday := TO_CHAR(TO_DATE(i_end_date,'YYYY-MM-DD'),'YYYY-MM-DD');
+    v_thisweek_lastday_T :=TO_CHAR(TO_DATE(i_end_date,'YYYY-MM-DD')-1,'YYYY-MM-DD');
+    v_thismonth_firstday:= TO_CHAR(TO_DATE(substr(v_thisweek_lastday_T,1,7) || '-01','YYYY-MM-DD'),'YYYY-MM-DD');
+
+    /*--判断是否为跨月周
+     if ( substr(i_end_date,6,2) - substr (i_begin_date,6,2)) >0 and (substr(i_end_date,1,4) - substr (i_begin_date,1,4))>0
+
+            v_iskyweek := '1';
+      else
+
+            v_iskyweek := '0';
+      end if;
+ */
+  EXECUTE IMMEDIATE 'TRUNCATE TABLE TMP_RPT_ALL_WEEK';
+
+
+
+  COMMIT;
+
+--插入包月留存用户
+insert into TMP_RPT_ALL_WEEK
+  ( pro_id,
+    pro_name,
+    city_id,
+    city_name,
+   qxbyyw_userno --包月留存用户
+   )
+  select a.prov_code,
+         a.prov_name,
+         a.city_code,
+         a.city_name,
+         case
+           when sum(a.on_user_num) is null then 0
+             else
+            sum(a.on_user_num)
+         end
+    from TB_RPT_WZJST_DAY a
+   where deal_date = v_thismonth_firstday  and city_code in ('769','756','757','755','760','200','759')  and a.oper_code is not null  --and a.prov_code=b.provid and a.city_code=b.cityid
+   group by a.prov_code, a.prov_name, a.city_code, a.city_name
+    union all
+    select a.prov_code,
+         a.prov_name,
+         a.city_code,
+         a.city_name,
+         case
+           when sum(a.new_user_num) is null then
+            0
+           else
+            sum(a.new_user_num)
+         end
+    from TB_RPT_WZJST_DAY a
+   where a.deal_date >= v_thismonth_firstday  and city_code in ('769','756','757','755','760','200','759')  and a.oper_code is not null  
+     and a.deal_date < v_thisweek_lastday
+   group by a.prov_code, a.prov_name, a.city_code, a.city_name
+   ;
+COMMIT;
+--包月新增计费用户数
+insert into TMP_RPT_ALL_WEEK
+  ( pro_id,
+    pro_name,
+    city_id,
+    city_name,
+   BYJF_USERNO --包月新增计费用户数=留存+新增计费用户数
+   )
+   select a.prov_code,
+          a.prov_name   ,
+          a.city_code  ,
+          a.city_name  ,
+          case
+            when sum(a.on_user_num) is null then
+             0
+            else
+             sum(a.on_user_num)
+          end
+     from TB_RPT_WZJST_DAY a
+    where deal_date = v_thismonth_firstday and city_code in ('769','756','757','755','760','200','759')  and a.oper_code is not null  
+    group by a.prov_code, a.prov_name, a.city_code, a.city_name
+   union all
+  select a.prov_code,
+         a.prov_name,
+         a.city_code,
+         a.city_name,
+         case
+           when sum(a.jf_user_num) is null then
+            0
+           else
+            sum(a.jf_user_num)
+         end
+    from TB_RPT_WZJST_DAY a
+   where a.deal_date >= v_thismonth_firstday and city_code in ('769','756','757','755','760','200','759')  and a.oper_code is not null  
+     and a.deal_date < v_thisweek_lastday
+   group by a.prov_code, a.prov_name, a.city_code, a.city_name
+
+   ;
+COMMIT;
+--插入预估包月信息费
+/* 4、预估包月信息费：留存用户+新增计费用户X 对应业务资费+彩票成功计费条数*/
+
+/*包月跨月周：包含留存量 其余不包含留存量*/
+insert into TMP_RPT_ALL_WEEK
+  ( pro_id,
+    pro_name,
+    city_id,
+    city_name,
+   YG_BYXXF --预估包月信息费
+   )
+select a.prov_code  ,
+       a.prov_name  ,
+       a.city_code  ,
+       a.city_name  ,
+      case when TO_DATE(substr(v_thisweek_lastday_T,1,7) || '-01','YYYY-MM-DD')-TO_DATE(substr(v_thisweek_firstday,1,7) || '-01','YYYY-MM-DD')=0 and TO_char(substr(v_thisweek_firstday,9,10)) !='01'
+      then -sum(CASE WHEN a.oper_code in ('F2','C')  THEN a.on_user_num *2--'全能助理短信'
+     WHEN a.oper_code in ('F3','E')  THEN a.on_user_num *3  --'营养百科彩信'
+     WHEN a.oper_code = 'F4'  THEN a.on_user_num *4  --'营养百科短信'
+     WHEN a.oper_code = 'F5'  THEN a.on_user_num *5 --'汽车宝典'
+     WHEN a.oper_code = 'F6'  THEN  a.on_user_num *6 -- + '全能助理彩信'
+     WHEN a.oper_code = 'F7'  THEN  a.on_user_num *7 -- + '全能助理彩信'
+     WHEN a.oper_code = 'F8'  THEN a.on_user_num *8  --'掌上折扣短信'
+     WHEN a.oper_code = 'F9'  THEN a.on_user_num *9 --'掌上折扣彩信'
+     WHEN a.oper_code = 'F10'  THEN a.on_user_num *10  --'手机书架彩信'
+     WHEN a.oper_code is null  THEN 0  --'其他'
+     end) else 0 end YG_BYXXF
+       from TB_RPT_WZJST_DAY a
+       where deal_date= v_thismonth_firstday and city_code in ('769','756','757','755','760','200','759')  and a.oper_code is not null  
+ group by a.prov_code, a.prov_name , a.city_code ,a.city_name
+ union all
+ select a.prov_code  ,
+       a.prov_name  ,
+       a.city_code  ,
+       a.city_name  ,
+       sum(CASE WHEN a.oper_code in ('F2','C')  THEN a.on_user_num *2--'全能助理短信'
+     WHEN a.oper_code in ('F3','E')  THEN a.on_user_num *3  --'营养百科彩信'
+     WHEN a.oper_code = 'F4'  THEN a.on_user_num *4  --'营养百科短信'
+     WHEN a.oper_code = 'F5'  THEN a.on_user_num *5 --'汽车宝典'
+     WHEN a.oper_code = 'F6'  THEN  a.on_user_num *6 -- + '全能助理彩信'
+     WHEN a.oper_code = 'F7'  THEN  a.on_user_num *7 -- + '全能助理彩信'
+     WHEN a.oper_code = 'F8'  THEN a.on_user_num *8  --'掌上折扣短信'
+     WHEN a.oper_code = 'F9'  THEN a.on_user_num *9 --'掌上折扣彩信'
+     WHEN a.oper_code = 'F10'  THEN a.on_user_num *10  --'手机书架彩信'
+     WHEN a.oper_code is null  THEN 0  --'其他'
+     end)  YG_BYXXF
+       from TB_RPT_WZJST_DAY a
+       where deal_date= v_thismonth_firstday and city_code in ('769','756','757','755','760','200','759')  and a.oper_code is not null  
+ group by a.prov_code, a.prov_name , a.city_code ,a.city_name
+
+       union all
+       select a.prov_code ,
+       a.prov_name  ,
+       a.city_code  ,
+       a.city_name  ,
+      sum( CASE  WHEN a.oper_code in ('F2','C')  THEN a.jf_user_num *2--'全能助理短信'
+     WHEN a.oper_code in ('F3','E')  THEN a.jf_user_num *3  --'营养百科彩信'
+     WHEN a.oper_code = 'F4'  THEN a.jf_user_num *4  --'营养百科短信'
+     WHEN a.oper_code = 'F5'  THEN a.jf_user_num *5 --'汽车宝典'
+     WHEN a.oper_code = 'F6'  THEN  a.jf_user_num *6 -- + '全能助理彩信'
+     WHEN a.oper_code = 'F7'  THEN  a.jf_user_num *7 -- + '全能助理彩信'
+     WHEN a.oper_code = 'F8'  THEN a.jf_user_num *8  --'掌上折扣短信'
+     WHEN a.oper_code = 'F9'  THEN a.jf_user_num *9 --'掌上折扣彩信'
+     WHEN a.oper_code = 'F10'  THEN a.jf_user_num *10  --'手机书架彩信'
+     WHEN a.oper_code is null  THEN 0  --'其他'
+     end) YG_BYXXF
+       from TB_RPT_WZJST_DAY a
+ where
+ a.deal_date >=v_thisweek_firstday and city_code in ('769','756','757','755','760','200','759')  and a.oper_code is not null  
+   and a.deal_date <  v_thisweek_lastday
+ group by a.prov_code,  a.prov_name,a.city_code ,a.city_name
+ order by a.prov_code,a.city_code
+ ;
+COMMIT;
+
+
+end P_RPT_ALL_WEEK_GDWZ;
+
+ 
