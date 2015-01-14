@@ -1,0 +1,134 @@
+CREATE OR REPLACE PROCEDURE P_RPT_BOSS_3DAY
+(
+ v_txdate IN VARCHAR2,
+ v_retcode OUT NUMBER
+)
+IS
+--/************************************************************************************
+-- 功能描述: 祝福我帮您日统计报表
+-- 数据源表：
+-- 目 标 表：
+-- 输入参数：当前处理日期、序号、分区号
+-- 输出参数：执行状态(0、执行成功,其他、执行失败),错误代码
+-- 创建人员：王文彬
+-- 创建日期：2009-1-22
+-- 修改信息：
+-- 执行说明：
+--/************************************************************************************
+--DECLARE V_RETCODE NUMBER; BEGIN P_RPT_ZFWBN_DAY('20090121',v_retcode ); END;
+-- 编写规则说明
+-- 说明1：所有自定义变量均用小写，并以v_打头；所有字段名均用大写
+-- 说明2: 所有关键值均用大字；模式名、表名、函数名、存储过程名均用大写
+-- 说明3: 段落之间的缩进为三个空格
+-- 说明4: SQL语句目标和源要齐整
+-- 说明5: 对每个表的数据作改变后都要显示的提交
+
+
+-- 变量定义
+
+   v_thisyyyymmdd CHAR(10);   -- 当日年月日变量
+   v_nextyyyymmdd CHAR(10);   -- 下日年月日变量
+   v_tyyyyymmdd char(8); --
+   v_ndayyyyymmdd char (8);
+   v_stepnum    NUMBER        DEFAULT 0;   -- 运行步骤
+   v_rcount     NUMBER        DEFAULT 0;   -- 影响记录数
+   v_dealtype   CHAR(1)       DEFAULT '0'; -- 处理类型,'U'表示更新,'I'表示插入,'D'表示删除,'T'为TRUNCATE,'E'为抽取,'L'为加载
+   v_dealtab    VARCHAR2(128) DEFAULT '0'; -- 处理目标表
+   v_dealprc    VARCHAR2(128) DEFAULT '0'; -- 处理存储过程名称
+   v_errcode    NUMBER        DEFAULT 0;   -- 运行状态变量
+   v_errdesc    VARCHAR2(200) DEFAULT '0'; -- 运行错误描述
+   v_yyyymmdd   VARCHAR2(20);
+
+   v_nextyymmdd VARCHAR2(20) ;
+ 
+
+BEGIN
+   -- 设置返回初始值
+   v_retcode := 1;
+   v_dealprc := 'P_RPT_BOSS_3DAY';
+
+   -- 变量赋值
+   v_thisyyyymmdd := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')-4,'YYYY-MM-DD');
+   v_nextyyyymmdd := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')+1,'YYYY-MM-DD');
+  
+    v_yyyymmdd := replace(v_thisyyyymmdd,'-')||'000000' ;
+   v_nextyymmdd := replace(v_nextyyyymmdd,'-')||'000000' ;
+   -- 正文SQL处理
+
+   --删除数据
+
+  DELETE FROM PTJ.Tb_Rpt_Cmpp_Day   WHERE DEALTIME=v_thisyyyymmdd;
+  DELETE FROM PTJ.Tb_Rpt_Mm7_Day    WHERE DEALTIME=v_thisyyyymmdd;
+
+  COMMIT;
+
+
+--插入下行短信日报表  tb_rpt_cmpp_day
+INSERT INTO PTJ.tb_rpt_cmpp_day
+  (
+   DEALTIME
+  ,PROVINCE
+  ,PRO_ID
+  ,CITY
+  ,CITY_ID
+  ,SYSSTATE
+  ,appcode
+  ,jfcode
+  ,TOTALS
+  )
+ select  to_char(to_date(dealtime,'yyyy-mm-dd'),'yyyy-mm-dd') ,
+ nvl(m.province,'未知'),
+ nvl( m.provinceno,'000'),
+ nvl( m.city,'未知'),
+ nvl( m.citycode,'000'),
+ c.sysstate,
+ c.appcode,
+ c.jfcode ,
+ count(distinct c.mobile)
+from cmpp_sms_3 c,mobileNODIST m
+where SUBSTR(c.mobile,1,7) = m.BEGINNO (+)
+group by m.province,m.city,m.provinceno,m.citycode,c.sysstate,c.appcode,c.jfcode ,dealtime;
+
+COMMIT;
+
+
+
+--插入下行彩信日报表 tb_rpt_mm7_day
+INSERT INTO PTJ.tb_rpt_mm7_day
+  (
+   DEALTIME
+  ,PROVINCE
+  ,PRO_ID
+  ,CITY
+  ,CITY_ID
+  ,SYSSTATE
+  ,appcode
+  ,jfcode
+  ,TOTALS
+  )
+select  to_char(to_date(dealtime,'yyyy-mm-dd'),'yyyy-mm-dd') ,
+ nvl(m.province,'未知'),
+ nvl( m.provinceno,'000'),
+ nvl( m.city,'未知'),
+ nvl( m.citycode,'000'),
+ c.sysstate,
+ c.appcode,
+ c.jfcode ,
+ count(*)
+from mm7_mms_3 c,mobileNODIST m
+where SUBSTR(c.mobile,1,7) = m.BEGINNO (+)
+group by m.province,m.city,m.provinceno,m.citycode,c.sysstate,c.appcode,c.jfcode ,dealtime;
+    COMMIT;
+
+EXECUTE IMMEDIATE 'TRUNCATE TABLE mm7_mms_3';
+ EXECUTE IMMEDIATE 'TRUNCATE TABLE cmpp_sms_3';
+ COMMIT;
+
+ 
+   -- 得到返回值
+   v_retcode := SQLCODE;
+   RETURN;
+
+END P_RPT_BOSS_3DAY;
+
+ 
