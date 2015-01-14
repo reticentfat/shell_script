@@ -1,0 +1,355 @@
+create or replace procedure P_RPT_DAYLJ
+(
+ is_province int,--是分省份累计 ：1 是全国累计 :2   
+ o_cur out out_param.out_cur
+ --o_cur out out_param.out_cur
+)
+IS
+--/************************************************************************************
+-- 功能描述: 业务渠道日统计
+-- 数据源表：
+-- 目 标 表：
+-- 输入参数：当前处理日期、序号、分区号
+-- 输出参数：执行状态(0、执行成功,其他、执行失败),错误代码
+-- 创建人员：王文彬
+-- 创建日期：2009-2-16
+-- 修改信息：
+-- 执行说明：
+--/************************************************************************************
+--DECLARE V_RETCODE NUMBER; BEGIN P_RPT_CHN_DAY('20090201',v_retcode ); END;
+-- 编写规则说明
+-- 说明1：所有自定义变量均用小写，并以v_打头；所有字段名均用大写
+-- 说明2: 所有关键值均用大字；模式名、表名、函数名、存储过程名均用大写
+-- 说明3: 段落之间的缩进为三个空格
+-- 说明4: SQL语句目标和源要齐整
+-- 说明5: 对每个表的数据作改变后都要显示的提交
+
+---- 包含对象的嵌套表变量的声明
+
+
+--对嵌套表进行"造型"返回游标
+
+-- 变量定义
+ v_begindate char(20);      --开始时间
+ v_enddate char(20);        --退订时间
+ v_thisyyyymmdd CHAR(10);   -- 当日年月日变量
+   v_nextyyyymmdd CHAR(10);   -- 下日年月日变量
+   v_lastyyyymmdd CHAR(10);   -- 上日年月日变量
+   v_yyyymmdd 	  CHAR(20);   -- 年月日变量
+   v_nextyymmdd   CHAR(20);   -- 下月日变量
+   v_yymmdd1     CHAR(10);   -- 年月日变量
+   v_this_day	  CHAR(2);     -- 当日变量
+   v_this_date    DATE;
+   v_last_date    DATE;
+   v_msg1  varchar(20);
+   v_provin1 varchar(200);
+    v_SQL1 varchar(4000);
+    v_SQL2 varchar(4000);
+  v_thisyyyymmddnew CHAR(20);
+  v_nextyyyymmddnew CHAR(20);
+
+
+BEGIN
+   -- 设置返回初始值
+
+    --select to_char(sysdate,'yyyy-mm-dd') from dual
+   -- 变量赋值
+   v_begindate:= to_char(sysdate,'yyyy-mm-dd');
+   v_enddate:=to_char(sysdate,'yyyy-mm-dd');
+   v_thisyyyymmdd := TO_CHAR(TO_DATE(v_begindate,'YYYY-MM-DD'),'YYYY-MM-DD');
+   v_nextyyyymmdd := TO_CHAR(TO_DATE(v_enddate,'YYYY-MM-DD')+1,'YYYY-MM-DD');
+   v_thisyyyymmddnew := TO_DATE(v_begindate,'YYYY-MM-DD');
+   v_nextyyyymmddnew := TO_DATE(v_enddate,'YYYY-MM-DD')+1;
+   v_lastyyyymmdd := TO_CHAR(TO_DATE(v_begindate,'YYYY-MM-DD')-2,'YYYY-MM-DD');
+   v_this_day := SUBSTR(v_thisyyyymmdd,9,2);
+   v_yyyymmdd := replace(v_thisyyyymmdd,'-')||'000000' ;
+   v_yymmdd1 := SUBSTR(v_thisyyyymmdd,1,8)||'01';
+   v_nextyymmdd := replace(v_nextyyyymmdd,'-')||'000000' ;
+   v_this_date := TO_DATE(v_begindate||' 23:59:59','YYYY-MM-DD HH24:MI:SS');
+   v_last_date := TO_DATE(v_begindate||' 23:59:59','YYYY-MM-DD HH24:MI:SS')-1;
+
+
+
+--select  *  from tb_rpt_wzjst_day   group by city_code, city_name
+if is_province=1 then
+     open  o_cur  for
+
+SELECT
+       prov_code,
+       prov_name,
+
+       SUM(YG_BYXXF),
+       SUM(YG_DBXXF)
+
+FROM
+
+( select a.prov_code  ,
+       a.prov_name  ,
+       a.city_code  ,
+       a.city_name  ,
+       sum(CASE WHEN a.oper_code = '1'  THEN  a.on_user_num *3 -- + '全能助理彩信'
+           WHEN a.oper_code = '2'  THEN a.on_user_num *1--'全能助理短信'
+     WHEN a.oper_code = '3'  THEN a.on_user_num *5  --'营养百科彩信'
+     WHEN a.oper_code = '4'  THEN a.on_user_num *3  --'营养百科短信'
+     WHEN a.oper_code = '5'  THEN a.on_user_num *3 --'汽车宝典'
+     WHEN a.oper_code = '8'  THEN a.on_user_num *5  --'掌上折扣短信'
+     WHEN a.oper_code = '9'  THEN a.on_user_num *5 --'掌上折扣彩信'
+     WHEN a.oper_code = '10'  THEN a.on_user_num *3  --'手机书架彩信'
+     WHEN a.oper_code = '11'  THEN a.on_user_num *3 --'家庭理财彩信'
+     WHEN a.oper_code = '12'  THEN a.on_user_num *1  --'生活小贴士短信'
+     WHEN a.oper_code = '13'  THEN a.on_user_num *3 --'生活小贴士彩信'
+     WHEN a.oper_code = '14'  THEN a.on_user_num *1 --'双色球
+     WHEN a.oper_code = '15'  THEN  a.on_user_num *1 -- + '福彩3D'
+     WHEN a.oper_code = '16'  THEN a.on_user_num *1--'福彩7乐彩'
+     WHEN a.oper_code = '17'  THEN a.on_user_num *1 --'体彩大乐透'
+     WHEN a.oper_code = '18'  THEN a.on_user_num *1  --'排列3排列5'
+     WHEN a.oper_code = '19'  THEN a.on_user_num *1 --'体彩7星彩'
+     WHEN a.oper_code = '20'  THEN a.on_user_num *1  --'体彩22选5'
+     WHEN a.oper_code = '21'  THEN a.on_user_num *1 --'体彩29选7'
+     WHEN a.oper_code = '22'  THEN a.on_user_num *3  --'福彩套餐'
+     WHEN a.oper_code = '23'  THEN a.on_user_num *3 --'体彩套餐'
+     WHEN a.oper_code = '24'  THEN a.on_user_num *3  --'百姓视角彩信'
+     WHEN a.oper_code = '25'  THEN a.on_user_num *1 --'百姓视角短信'
+     WHEN a.oper_code = '26'  THEN a.on_user_num *5 --'国学堂彩信'
+     WHEN a.oper_code = '27'  THEN a.on_user_num *3  --'国学堂短信'
+     WHEN a.oper_code = '28'  THEN a.on_user_num *5 --'电影俱乐部彩信'
+     WHEN a.oper_code = '29'  THEN a.on_user_num *3  --'电影俱乐部短信'
+     WHEN a.oper_code = '30'  THEN a.on_user_num *5 --'素质学堂彩信'
+     WHEN a.oper_code = '31'  THEN a.on_user_num *3  --'育儿宝典'
+     WHEN a.oper_code = '32'  THEN a.on_user_num *5 --'职场橙才彩信'
+      WHEN a.oper_code = '33'  THEN a.on_user_num *3 --'优惠券彩信'
+     WHEN a.oper_code = '34'  THEN a.on_user_num *2 --'就业招聘短信'
+      WHEN a.oper_code = 'A'  THEN a.on_user_num *1 --'北京违章1元'
+     WHEN a.oper_code = 'B'  THEN a.on_user_num *0.83 --'北京违章10元'
+     WHEN a.oper_code = 'C'  THEN a.on_user_num *2 --'北京违章2元'
+     WHEN a.oper_code = 'D'  THEN a.on_user_num *1.25 --'北京违章15元'
+      WHEN a.oper_code = 'Y14'  THEN a.on_user_num *0.83  --''双色球10元包年'
+     WHEN a.oper_code = 'Y15'  THEN a.on_user_num *0.83  --''福彩3D10元包年'
+      WHEN a.oper_code = 'Y16'  THEN a.on_user_num *0.83--'福彩7乐彩10元包年'
+     WHEN a.oper_code = 'Y17'  THEN a.on_user_num *0.83 --'体彩大乐透10元包年'
+     WHEN a.oper_code = 'Y18'  THEN a.on_user_num *0.83  --'排列3排列510元包年'
+     WHEN a.oper_code = 'Y19'  THEN a.on_user_num *0.83 --'体彩7星彩10元包年'
+     WHEN a.oper_code = 'Y20'  THEN a.on_user_num *0.83  --'体彩22选510元包年'
+     WHEN a.oper_code = 'Y21'  THEN a.on_user_num *0.83 --'体彩29选710元包年'
+     WHEN a.oper_code is null  THEN 0  --'其他'
+     end)  YG_BYXXF,
+     0     YG_DBXXF
+       from tb_rpt_oper_day a
+       where deal_date= v_yymmdd1
+ group by a.prov_code, a.prov_name , a.city_code ,a.city_name
+
+       union all
+       select a.prov_code ,
+       a.prov_name  ,
+       a.city_code  ,
+       a.city_name  ,
+      sum( CASE WHEN a.oper_code = '1'  THEN  a.jf_user_num *3 -- + '全能助理彩信'
+           WHEN a.oper_code = '2'  THEN a.jf_user_num *1--'全能助理短信'
+     WHEN a.oper_code = '3'  THEN a.jf_user_num *5  --'营养百科彩信'
+     WHEN a.oper_code = '4'  THEN a.jf_user_num *3  --'营养百科短信'
+     WHEN a.oper_code = '5'  THEN a.jf_user_num *3 --'汽车宝典'
+     WHEN a.oper_code = '8'  THEN a.jf_user_num *5  --'掌上折扣短信'
+     WHEN a.oper_code = '9'  THEN a.jf_user_num *5 --'掌上折扣彩信'
+     WHEN a.oper_code = '10'  THEN a.jf_user_num *3  --'手机书架彩信'
+     WHEN a.oper_code = '11'  THEN a.jf_user_num *3 --'家庭理财彩信'
+     WHEN a.oper_code = '12'  THEN a.jf_user_num *1  --'生活小贴士短信'
+     WHEN a.oper_code = '13'  THEN a.jf_user_num *3 --'生活小贴士彩信'
+     WHEN a.oper_code = '14'  THEN a.jf_user_num *1 --'双色球
+     WHEN a.oper_code = '15'  THEN  a.jf_user_num *1 -- + '福彩3D'
+     WHEN a.oper_code = '16'  THEN a.jf_user_num *1--'福彩7乐彩'
+     WHEN a.oper_code = '17'  THEN a.jf_user_num *1 --'体彩大乐透'
+     WHEN a.oper_code = '18'  THEN a.jf_user_num *1  --'排列3排列5'
+     WHEN a.oper_code = '19'  THEN a.jf_user_num *1 --'体彩7星彩'
+     WHEN a.oper_code = '20'  THEN a.jf_user_num *1  --'体彩22选5'
+     WHEN a.oper_code = '21'  THEN a.jf_user_num *1 --'体彩29选7'
+     WHEN a.oper_code = '22'  THEN a.jf_user_num *3  --'福彩套餐'
+     WHEN a.oper_code = '23'  THEN a.jf_user_num *3 --'体彩套餐'
+     WHEN a.oper_code = '24'  THEN a.jf_user_num *3  --'百姓视角彩信'
+     WHEN a.oper_code = '25'  THEN a.jf_user_num *1 --'百姓视角短信'
+     WHEN a.oper_code = '26'  THEN a.jf_user_num *5 --'国学堂彩信'
+     WHEN a.oper_code = '27'  THEN a.jf_user_num *3  --'国学堂短信'
+     WHEN a.oper_code = '28'  THEN a.jf_user_num *5 --'电影俱乐部彩信'
+     WHEN a.oper_code = '29'  THEN a.jf_user_num *3  --'电影俱乐部短信'
+     WHEN a.oper_code = '30'  THEN a.jf_user_num *5 --'素质学堂彩信'
+     WHEN a.oper_code = '31'  THEN a.jf_user_num *3  --'育儿宝典'
+     WHEN a.oper_code = '32'  THEN a.jf_user_num *5 --'职场橙才彩信'
+      WHEN a.oper_code = '33'  THEN a.jf_user_num *3 --'优惠券彩信'
+     WHEN a.oper_code = '34'  THEN a.jf_user_num *2 --'就业招聘短信'
+      WHEN a.oper_code = 'A'  THEN a.jf_user_num *1 --'北京违章1元'
+     WHEN a.oper_code = 'B'  THEN a.jf_user_num *0.83 --'北京违章10元'
+     WHEN a.oper_code = 'C'  THEN a.jf_user_num *2 --'北京违章2元'
+     WHEN a.oper_code = 'D'  THEN a.jf_user_num *1.25 --'北京违章15元'
+      WHEN a.oper_code = 'Y14' THEN a.jf_user_num *0.83  --''双色球10元包年'
+     WHEN a.oper_code = 'Y15'  THEN a.jf_user_num *0.83  --''福彩3D10元包年'
+      WHEN a.oper_code = 'Y16' THEN a.jf_user_num *0.83--'福彩7乐彩10元包年'
+     WHEN a.oper_code = 'Y17'  THEN a.jf_user_num *0.83 --'体彩大乐透10元包年'
+     WHEN a.oper_code = 'Y18'  THEN a.jf_user_num *0.83  --'排列3排列510元包年'
+     WHEN a.oper_code = 'Y19'  THEN a.jf_user_num *0.83 --'体彩7星彩10元包年'
+     WHEN a.oper_code = 'Y20'  THEN a.jf_user_num *0.83  --'体彩22选510元包年'
+     WHEN a.oper_code = 'Y21'  THEN a.jf_user_num *0.83 --'体彩29选710元包年'
+     WHEN a.oper_code is null  THEN 0  --'其他'
+     end) YG_BYXXF,
+      0     YG_DBXXF
+       from tb_rpt_oper_day a
+ where
+ a.deal_date >= v_yymmdd1
+   and a.deal_date < v_thisyyyymmdd
+ group by a.prov_code,  a.prov_name,a.city_code ,a.city_name
+
+ union all
+ select prov_code ,
+       province  prov_name,
+       city_code ,
+       city city_name,
+        0 YG_BYXXF,
+       sum(a.suc_jf_times) YG_DBXXF
+        from  tb_rpt_zfwbn_day a
+        where deal_date >= v_yymmdd1
+   and deal_date <  v_thisyyyymmdd and a.opt_type not in ('D002','D003') -- '2009-04-1'
+ group by prov_code,  province,city_code,city
+
+ ) A
+
+GROUP BY  prov_code,
+       prov_name
+      ;
+ else --全国累计
+      
+    open  o_cur  for   SELECT
+       '全国累计',
+       SUM(YG_BYXXF),
+       SUM(YG_DBXXF)
+FROM
+
+( select a.prov_code  ,
+       a.prov_name  ,
+       a.city_code  ,
+       a.city_name  ,
+       sum(CASE WHEN a.oper_code = '1'  THEN  a.on_user_num *3 -- + '全能助理彩信'
+           WHEN a.oper_code = '2'  THEN a.on_user_num *1--'全能助理短信'
+     WHEN a.oper_code = '3'  THEN a.on_user_num *5  --'营养百科彩信'
+     WHEN a.oper_code = '4'  THEN a.on_user_num *3  --'营养百科短信'
+     WHEN a.oper_code = '5'  THEN a.on_user_num *3 --'汽车宝典'
+     WHEN a.oper_code = '8'  THEN a.on_user_num *5  --'掌上折扣短信'
+     WHEN a.oper_code = '9'  THEN a.on_user_num *5 --'掌上折扣彩信'
+     WHEN a.oper_code = '10'  THEN a.on_user_num *3  --'手机书架彩信'
+     WHEN a.oper_code = '11'  THEN a.on_user_num *3 --'家庭理财彩信'
+     WHEN a.oper_code = '12'  THEN a.on_user_num *1  --'生活小贴士短信'
+     WHEN a.oper_code = '13'  THEN a.on_user_num *3 --'生活小贴士彩信'
+     WHEN a.oper_code = '14'  THEN a.on_user_num *1 --'双色球
+     WHEN a.oper_code = '15'  THEN  a.on_user_num *1 -- + '福彩3D'
+     WHEN a.oper_code = '16'  THEN a.on_user_num *1--'福彩7乐彩'
+     WHEN a.oper_code = '17'  THEN a.on_user_num *1 --'体彩大乐透'
+     WHEN a.oper_code = '18'  THEN a.on_user_num *1  --'排列3排列5'
+     WHEN a.oper_code = '19'  THEN a.on_user_num *1 --'体彩7星彩'
+     WHEN a.oper_code = '20'  THEN a.on_user_num *1  --'体彩22选5'
+     WHEN a.oper_code = '21'  THEN a.on_user_num *1 --'体彩29选7'
+     WHEN a.oper_code = '22'  THEN a.on_user_num *3  --'福彩套餐'
+     WHEN a.oper_code = '23'  THEN a.on_user_num *3 --'体彩套餐'
+     WHEN a.oper_code = '24'  THEN a.on_user_num *3  --'百姓视角彩信'
+     WHEN a.oper_code = '25'  THEN a.on_user_num *1 --'百姓视角短信'
+     WHEN a.oper_code = '26'  THEN a.on_user_num *5 --'国学堂彩信'
+     WHEN a.oper_code = '27'  THEN a.on_user_num *3  --'国学堂短信'
+     WHEN a.oper_code = '28'  THEN a.on_user_num *5 --'电影俱乐部彩信'
+     WHEN a.oper_code = '29'  THEN a.on_user_num *3  --'电影俱乐部短信'
+     WHEN a.oper_code = '30'  THEN a.on_user_num *5 --'素质学堂彩信'
+     WHEN a.oper_code = '31'  THEN a.on_user_num *3  --'育儿宝典'
+     WHEN a.oper_code = '32'  THEN a.on_user_num *5 --'职场橙才彩信'
+      WHEN a.oper_code = '33'  THEN a.on_user_num *3 --'优惠券彩信'
+     WHEN a.oper_code = '34'  THEN a.on_user_num *2 --'就业招聘短信'
+      WHEN a.oper_code = 'A'  THEN a.on_user_num *1 --'北京违章1元'
+     WHEN a.oper_code = 'B'  THEN a.on_user_num *0.83 --'北京违章10元'
+     WHEN a.oper_code = 'C'  THEN a.on_user_num *2 --'北京违章2元'
+     WHEN a.oper_code = 'D'  THEN a.on_user_num *1.25 --'北京违章15元'
+      WHEN a.oper_code = 'Y14'  THEN a.on_user_num *0.83  --''双色球10元包年'
+     WHEN a.oper_code = 'Y15'  THEN a.on_user_num *0.83  --''福彩3D10元包年'
+      WHEN a.oper_code = 'Y16'  THEN a.on_user_num *0.83--'福彩7乐彩10元包年'
+     WHEN a.oper_code = 'Y17'  THEN a.on_user_num *0.83 --'体彩大乐透10元包年'
+     WHEN a.oper_code = 'Y18'  THEN a.on_user_num *0.83  --'排列3排列510元包年'
+     WHEN a.oper_code = 'Y19'  THEN a.on_user_num *0.83 --'体彩7星彩10元包年'
+     WHEN a.oper_code = 'Y20'  THEN a.on_user_num *0.83  --'体彩22选510元包年'
+     WHEN a.oper_code = 'Y21'  THEN a.on_user_num *0.83 --'体彩29选710元包年'
+     WHEN a.oper_code is null  THEN 0  --'其他'
+     end)  YG_BYXXF,
+     0     YG_DBXXF
+       from tb_rpt_oper_day a
+       where deal_date= v_yymmdd1
+ group by a.prov_code, a.prov_name , a.city_code ,a.city_name
+
+       union all
+       select a.prov_code ,
+       a.prov_name  ,
+       a.city_code  ,
+       a.city_name  ,
+      sum( CASE WHEN a.oper_code = '1'  THEN  a.jf_user_num *3 -- + '全能助理彩信'
+           WHEN a.oper_code = '2'  THEN a.jf_user_num *1--'全能助理短信'
+     WHEN a.oper_code = '3'  THEN a.jf_user_num *5  --'营养百科彩信'
+     WHEN a.oper_code = '4'  THEN a.jf_user_num *3  --'营养百科短信'
+     WHEN a.oper_code = '5'  THEN a.jf_user_num *3 --'汽车宝典'
+     WHEN a.oper_code = '8'  THEN a.jf_user_num *5  --'掌上折扣短信'
+     WHEN a.oper_code = '9'  THEN a.jf_user_num *5 --'掌上折扣彩信'
+     WHEN a.oper_code = '10'  THEN a.jf_user_num *3  --'手机书架彩信'
+     WHEN a.oper_code = '11'  THEN a.jf_user_num *3 --'家庭理财彩信'
+     WHEN a.oper_code = '12'  THEN a.jf_user_num *1  --'生活小贴士短信'
+     WHEN a.oper_code = '13'  THEN a.jf_user_num *3 --'生活小贴士彩信'
+     WHEN a.oper_code = '14'  THEN a.jf_user_num *1 --'双色球
+     WHEN a.oper_code = '15'  THEN  a.jf_user_num *1 -- + '福彩3D'
+     WHEN a.oper_code = '16'  THEN a.jf_user_num *1--'福彩7乐彩'
+     WHEN a.oper_code = '17'  THEN a.jf_user_num *1 --'体彩大乐透'
+     WHEN a.oper_code = '18'  THEN a.jf_user_num *1  --'排列3排列5'
+     WHEN a.oper_code = '19'  THEN a.jf_user_num *1 --'体彩7星彩'
+     WHEN a.oper_code = '20'  THEN a.jf_user_num *1  --'体彩22选5'
+     WHEN a.oper_code = '21'  THEN a.jf_user_num *1 --'体彩29选7'
+     WHEN a.oper_code = '22'  THEN a.jf_user_num *3  --'福彩套餐'
+     WHEN a.oper_code = '23'  THEN a.jf_user_num *3 --'体彩套餐'
+     WHEN a.oper_code = '24'  THEN a.jf_user_num *3  --'百姓视角彩信'
+     WHEN a.oper_code = '25'  THEN a.jf_user_num *1 --'百姓视角短信'
+     WHEN a.oper_code = '26'  THEN a.jf_user_num *5 --'国学堂彩信'
+     WHEN a.oper_code = '27'  THEN a.jf_user_num *3  --'国学堂短信'
+     WHEN a.oper_code = '28'  THEN a.jf_user_num *5 --'电影俱乐部彩信'
+     WHEN a.oper_code = '29'  THEN a.jf_user_num *3  --'电影俱乐部短信'
+     WHEN a.oper_code = '30'  THEN a.jf_user_num *5 --'素质学堂彩信'
+     WHEN a.oper_code = '31'  THEN a.jf_user_num *3  --'育儿宝典'
+     WHEN a.oper_code = '32'  THEN a.jf_user_num *5 --'职场橙才彩信'
+      WHEN a.oper_code = '33'  THEN a.jf_user_num *3 --'优惠券彩信'
+     WHEN a.oper_code = '34'  THEN a.jf_user_num *2 --'就业招聘短信'
+      WHEN a.oper_code = 'A'  THEN a.jf_user_num *1 --'北京违章1元'
+     WHEN a.oper_code = 'B'  THEN a.jf_user_num *0.83 --'北京违章10元'
+     WHEN a.oper_code = 'C'  THEN a.jf_user_num *2 --'北京违章2元'
+     WHEN a.oper_code = 'D'  THEN a.jf_user_num *1.25 --'北京违章15元'
+      WHEN a.oper_code = 'Y14' THEN a.jf_user_num *0.83  --''双色球10元包年'
+     WHEN a.oper_code = 'Y15'  THEN a.jf_user_num *0.83  --''福彩3D10元包年'
+      WHEN a.oper_code = 'Y16' THEN a.jf_user_num *0.83--'福彩7乐彩10元包年'
+     WHEN a.oper_code = 'Y17'  THEN a.jf_user_num *0.83 --'体彩大乐透10元包年'
+     WHEN a.oper_code = 'Y18'  THEN a.jf_user_num *0.83  --'排列3排列510元包年'
+     WHEN a.oper_code = 'Y19'  THEN a.jf_user_num *0.83 --'体彩7星彩10元包年'
+     WHEN a.oper_code = 'Y20'  THEN a.jf_user_num *0.83  --'体彩22选510元包年'
+     WHEN a.oper_code = 'Y21'  THEN a.jf_user_num *0.83 --'体彩29选710元包年'
+     WHEN a.oper_code is null  THEN 0  --'其他'
+     end) YG_BYXXF,
+      0     YG_DBXXF
+       from tb_rpt_oper_day a
+ where
+ a.deal_date >= v_yymmdd1
+   and a.deal_date < v_thisyyyymmdd
+ group by a.prov_code,  a.prov_name,a.city_code ,a.city_name
+
+ union all
+ select prov_code ,
+       province  prov_name,
+       city_code ,
+       city city_name,
+        0 YG_BYXXF,
+       sum(a.suc_jf_times) YG_DBXXF
+        from  tb_rpt_zfwbn_day a
+        where deal_date >= v_yymmdd1
+   and deal_date <  v_thisyyyymmdd and a.opt_type not in ('D002','D003') -- '2009-04-1'
+ group by prov_code,  province,city_code,city
+
+ ) A;
+ 
+      
+      end if;
+  end P_RPT_DAYLJ;
+
+ 
