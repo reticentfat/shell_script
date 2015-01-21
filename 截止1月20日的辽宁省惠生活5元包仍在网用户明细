@@ -1,0 +1,18 @@
+   select n.mobile_sn 手机号码,
+ m.province 省份,
+ m.city 城市,
+  case
+                      when n.mobile_sub_state = 3 then
+                       '订购中'
+                      else
+                       '已退定'
+                    end 订购状态,
+  to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 订购时间,
+                    to_char(n.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 退订时间,
+                    o.opt_cost 业务名称
+  from new_wireless_subscription n, opt_code o, mobilenodist m
+ where n.appcode = o.appcode
+   and substr(n.mobile_sn, 1, 7) = m.beginno
+   and n.appcode   in ('10511055')
+   and n.mobile_sub_state='3'
+   and m.province='辽宁'
