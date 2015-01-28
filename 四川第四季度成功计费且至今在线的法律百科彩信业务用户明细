@@ -1,0 +1,28 @@
+ ----------提取10-12月新增且在线的-------------
+    select  n.mobile_sn,m.city ,n.mobile_sub_time
+  from new_wireless_subscription n, opt_code o, mobilenodist m
+ where n.appcode = o.appcode
+   and substr(n.mobile_sn, 1, 7) = m.beginno
+   and n.mobile_sub_time >= to_date('2014-10-01', 'yyyy-mm-dd')
+   and n.mobile_sub_time < to_date('2014-12-01', 'yyyy-mm-dd')
+   and n.appcode ='10511051'
+   and m.province = '四川'
+   and n.mobile_sub_state='3'
+      --------------然后提取成功计费的-------------
+  158上操作
+  cat /data0/2014/20141031/qiangxiang_mms_pay_users.txt  | grep 
+
+',280,' | awk -F',' '{if($2=="10511051")print  }' > 
+
+/home/oracle/sichuan_10y_flbkcai.txt
+    cat /data0/2014/20141130/qiangxiang_mms_pay_users.txt  | grep 
+
+',280,' | awk -F',' '{if($2=="10511051")print  }' > 
+
+/home/oracle/sichuan_11y_flbkcai.txt
+cat /data0/2014/20141231/qiangxiang_mms_pay_users.txt  | grep ',280,' 
+
+| awk -F',' '{if($2=="10511051")print  }' > 
+
+/home/oracle/sichuan_12y_flbkcai.txt
+下载到本地后用excel处理
