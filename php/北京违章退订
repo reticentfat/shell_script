@@ -1,0 +1,226 @@
+<?php
+define('PATH',dirname(__FILE__));    
+define('PATH_LOG',PATH.'/log');
+require_once("/data0/12580/api/common/common_wireless_api.php");
+require_once("/data0/12580/api/bj_wzcx_new/global.php");
+require_once("/data0/12580/api/bj_wzcx_new/fs_msg.php");
+require_once("/data0/12580/api/bj_wzcx_new/error_arr.php");
+require_once("/data0/12580/api/wzcx_inter/lib_wzcx_base.php");
+set_time_limit(0);
+
+$array_mobile = array('WZ');
+$cron_action = $_SERVER['argv']['1'];
+if(in_array($cron_action,$array_mobile)){
+define('PATH_ERROR_LOG_FILE',PATH_LOG.'/'.$cron_action.'/error_'.date('Y-m-j').'.log');
+
+function doinglog($log_info,$name,$path_num){
+    $open_filename = fopen(PATH_LOG.'/'.$path_num.'/'.$name.'.log','a+');
+    fwrite($open_filename,date('Y-m-j H:i:s').'|'.$log_info."\n");    
+    fclose($open_filename); 
+}
+
+function errorlog($log_info){
+    $open_filename = fopen(PATH_ERROR_LOG_FILE,'a+');
+    fwrite($open_filename,date('Y-m-j H:i:s').'|'.$log_info."\n");    
+    fclose($open_filename); 
+}
+
+
+
+
+
+
+function curl_url($url,$data){
+		$ch = curl_init();
+		$header[] = "Content-type: text/xml"; 
+		curl_setopt($ch, CURLOPT_POST, 1);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+		curl_setopt($ch, CURLOPT_TIMEOUT,3);
+		curl_setopt($ch, CURLOPT_HEADER, 0);
+		curl_setopt($ch, CURLOPT_URL,$url);
+		curl_setopt($ch, CURLOPT_POSTFIELDS,$data);
+		ob_start();   
+		curl_exec($ch);   
+		$result = ob_get_contents() ;   
+		ob_end_clean();   
+		curl_close($ch);
+		return $result; 
+}
+
+function get_bj_wzcx_by_ids($id){
+  global $db_wzcx_read;
+  $ret = array();
+  $sql = "SELECT * FROM  wzcx_sub WHERE MOBILE_SN = '" . $id . "' AND MOBILE_MODIFY_STATE = '3'" ;
+  _db_query(&$db_wzcx_read, &$ret, ($sql));
+  return $ret[0];
+}
+
+/**同步北京CP 201-12-28
+ *	$type	操作类型 0：表示新增订购用户 1：表示用户修改信息 10：多车版增加车牌号码 13：多车版删除车牌号码 3：表示退订用户
+ *	$codeid	用户编号
+ *	$style	业务类型 A：1元包月 B：10元包年 C：2元包月 D：15元包年 E：5元包月（多车版）	
+ *	$carid	车牌号码	
+ *	$motor	发动机号		
+ *	$driverid	驾驶证号
+ *	$name	驾驶员姓名
+ *	$clsj	驾驶证号初领时间 2012-06-25加入
+*/
+
+function rsync_bj_cp_new($type,$codeid,$style,$carid='' ,$motor='' ,$mobile='',$driverid='',$name='',$clsj=''){
+  //$cp_url = "http://211.136.86.205:8081/DS1258/servlet/com.broadway.servlert.dealcustdb_cy";
+    $cp_url = "http://211.136.86.205:8081/DS1258/servlet/com.broadway.servlert.dealcustdb";
+	$opt_addr = 'beijing';
+	if ($type == 0) {
+		$opt_type = 'dz';
+	}elseif ($type == 1 || $type == 10) {
+		$opt_type = 'xg';
+	}elseif ($type == 3) {
+		$opt_type = 'qx';
+	}else{
+		$opt_type = 'dz';
+	}
+  if( empty($carid)){
+    $val = "no rsync";
+	$log_type='FAIL';
+	$url = $cp_url;
+  }else{
+    $url = $cp_url."?type=".$type."&codeid=".$codeid."&style=".$style."&carid=".$carid."&motor=".urlencode($motor)."&driverid=".urlencode($driverid)."&name=".urlencode($name)."&clsj=".$clsj;
+    $ch2 = curl_init();
+    curl_setopt($ch2, CURLOPT_URL, $url);
+    curl_setopt($ch2, CURLOPT_HEADER, false);
+    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, 1);
+    $val = curl_exec($ch2);
+    curl_close($ch2);
+  
+    if( trim($val) == '0'){
+      $log_type='SUCCESS';
+    }else{
+      $log_type='FAIL('.$val.')';
+    }
+	//file_put_contents("/data0/12580/api/bj_wzcx_new/apiLog/log.txt",$val);   
+	}
+	$url = str_replace(array("\r\n","\r","\n"),'',$url);
+	write_wzxc_log($opt_addr,$opt_type,$url,$val,$log_type,$mobile);
+  return $val;
+}
+
+
+
+//武英上传目录0
+$file_path = PATH.'/'.$cron_action.'/';
+
+//找到完成标示文件
+$find_file = 'find '.$file_path.' -type f -name "*.ok"';
+exec($find_file,$out);
+ 
+if(!empty($out['0'])){
+
+//获取完成文件名称
+$file_basename = basename($out['0'],".ok");	
+
+//判断文件是否存在
+
+if(file_exists($file_path.$file_basename.'.txt')){
+
+//把执行文件转移到执行目录		
+$doing_file_path = PATH.'/doing/'.$cron_action.'/'.$file_basename.'_doing.txt';	
+$doing_rename_file = rename($file_path.$file_basename.'.txt',$doing_file_path);
+
+if($doing_rename_file){
+//转移成功后删除完成标示文件
+unlink($out['0']);
+}else{
+//转移失败保留	
+errorlog($file_path.$file_basename.'.txt文件转移失败!');
+echo 'error';
+exit;	
+}
+
+//执行文件
+
+$fp = fopen($doing_file_path,"r");
+$i = 0;
+while(!feof($fp)){
+	$i++;	
+  $post_data = fgets($fp);
+  //没有了就弹出
+  if(substr($post_data,0,1) == '')
+  continue;
+  //分解
+  $post_data_array = explode("\t",$post_data);
+  
+  //过滤下前后空白
+  $post_data_mobile = trim($post_data_array['0']);
+  $post_data_num = trim($post_data_array['1']);
+  $post_data_price = trim($post_data_array['3']);
+  $result = get_bj_wzcx_by_ids($post_data_mobile);
+
+  if ($result['FEE_APP_CODE'] == $post_data_price){
+  //同步cp	
+  $cp_data = rsync_bj_cp_new(3,$result['ID'],$post_data_price,$result['CAR_NO'],$result['CAR_CARD_ID'] ,$post_data_mobile,$result['CAR_SN'] ,$result['SUB_COL_2'],$result['SUB_COL_3']);
+  
+  //更新本地订购库
+  $sub_data['MOBILE_MODIFY_TIME'] = date("Y-m-d H:i:s");
+	$sub_data['MOBILE_MODIFY_STATE'] = "0";
+	$sub_data['FEE_APP_CODE'] = "";
+	$sub_data['CAR_NO'] = "";
+	$sub_data['CAR_NO_NUM'] = "0";
+	$sub_data['CAR_SN'] = "";
+	$sub_data['CAR_SN_NUM'] = "0";
+	$sub_data['CAR_CARD_ID'] = "";
+	$sub_data['FEE_APP_CODE'] = "";
+	$sub_data['SUB_COL_1'] = "";
+	$sub_data['SUB_COL_2'] = "";
+	$sub_data['SUB_COL_3'] = "";
+	set_wzcx_user_by_id($result['ID'],$sub_data);
+	
+	/*退订日志写入*/
+	$user_log = array();
+	$user_log['MOBILE_SN'] = $post_data_mobile;
+	$user_log['OPTTIME'] = date("Y-m-d H:i:s");
+	$user_log['CMD'] = 'QXWZTC';
+	$user_log['ZUOXI_ID'] = '';
+	$user_log['OPT_TYPE'] = '3';//boss
+	$user_log['CAR_NO'] = $result['CAR_NO'];
+	$user_log['CAR_SN'] =  $result['CAR_SN'];
+	$user_log['CAR_TYPE'] = '';
+	$user_log['CAR_CARD_ID'] = $result['CAR_CARD_ID'];
+	$user_log['CAR_ADDR'] = '';
+	$user_log['OPT_ADDR'] = 'BEIJING';
+	$user_log['FEE_APP_CODE'] = $result['FEE_APP_CODE'];
+	$user_log['STATUS'] = 3;
+	$user_log['SUB_COL_2'] = $result['SUB_COL_2'] ;
+	$user_log['SUB_COL_3'] = $result['SUB_COL_3'] ;
+	set_wzcx_log_by_id('',$user_log);	  	
+  doinglog($post_data_mobile.'|'.$post_data_num.'|'.$post_data_price.'|'.$cp_data,$file_basename,$cron_action);
+  echo $i."\n";	
+  }else{
+  echo $post_data_mobile."\n";
+  }
+ 
+ 
+ 
+}
+fclose($fp);
+
+//创建日志结束标示
+file_put_contents(PATH_LOG.'/'.$cron_action.'/'.$file_basename.'.ok','finish');
+
+//将文件转移到结束目录
+$finish_file_path = PATH.'/finish/'.$cron_action.'/'.$file_basename.'_finish.txt';
+$finish_rename_file = rename($doing_file_path,$finish_file_path );
+echo 'over';
+exit;
+}else{
+echo 'File not found!';
+exit;	
+} 
+}else{
+echo 'File is empty!';
+exit;		
+}
+}else{
+echo 'Cron_action is error!';
+exit;	
+}  
+?>
