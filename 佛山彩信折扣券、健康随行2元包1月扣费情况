@@ -1,0 +1,42 @@
+|0430|0531|0630|0731|0831|0930|1031|1130|1231]
+--158上操作
+cat /data0/2015/20150131/qiangxiang_mms_pay_users.txt  | grep ',757,' | awk -F',' '{if($2=="10511024")print  }' > /home/oracle/foshan_1y_yhj.txt
+awk -F'[\t,]' -v CODE_DIR=/data0/match/orig/mm7/20150131/stats_month.wuxian_qianxiang.1000 -v fileok=/home/oracle/foshan_1y_yhj_ok.txt -v fileno=/home/oracle/foshan_1y_yhj_0.txt '{ 
+if( FILENAME == CODE_DIR ) d[$1$2]=$1","$2","$3; 
+else if ( FILENAME != CODE_DIR && (substr($2,1,3) == "105" || substr($2,1,3) == "108") ){
+if($2=="10811002"){if(($1$2 in d) || ($1"10611000" in d)) print >> fileok; else print >> fileno;} 
+else if($1$2 in d) print >> fileok; else print >> fileno;} 
+}' /data0/match/orig/mm7/20150131/stats_month.wuxian_qianxiang.1000 /home/oracle/foshan_1y_yhj.txt
+-----------上边是优惠卷下边是健康随行----------------------
+cat /data0/2015/20150131/qiangxiang_sms_pay_users.txt  | grep ',757,' | awk -F',' '{if($2=="10301085")print }' > /home/oracle/foshan_1y_jksx.txt
+awk -F',' -v CODE_DIR=/data0/match/orig/mm7/20150131/stats_month.wuxian_qianxiang.0 -v fileok=/home/oracle/foshan_1y_jksx_ok.txt -v fileno=/home/oracle/foshan_1y_jksx_0.txt '{
+if( FILENAME == CODE_DIR ) d[$1$2]=$1","$2","$3; 
+else if ( FILENAME != CODE_DIR && substr($2,1,3) == "103" && $1$2 in d ) print >> fileok ; 
+else if ( FILENAME != CODE_DIR && substr($2,1,3) == "103" && !($1$2 in d )) print >> fileno ; 
+}' /data0/match/orig/mm7/20150131/stats_month.wuxian_qianxiang.0 /home/oracle/foshan_1y_jksx.txt
+----------------------------------------
+
+导入jf_1查订购时间
+导入文本例子13411002277	七月	是	10301085
+ctl
+LOAD DATA  INFILE 'F:\work\wy.txt' 
+BADFILE 'F:\work\dingzhi.txt.bad'
+truncate INTO TABLE  jf_1
+FIELDS TERMINATED BY '	' OPTIONALLY ENCLOSED BY '"' 
+ TRAILING NULLCOLS
+( job_num,province,opt_code,opttime,mobile,biz_code,serial,subtime,city,cartype
+ )
+ sql语句
+ select  j.job_num 用户号码,
+       to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 订购时间，
+       j.province  扣费月份,
+        j.opt_code 是否计费成功,
+       n.appcode
+     
+  from jf_1 j left join new_wireless_subscription n
+on  j.job_num = n.mobile_sn
+ and j.opttime=n.appcode
+ 还有部分号码需要从退订快照取
+ 158上crontab 语句如下
+ 00 12 17  9 *  bzcat /home/oracle/etl/data/data/snapshot/archives.txt.bz2 | awk -F'[|^]' '{if(($6=="10301085")&&$(NF-5)>="20140701000000"&&$(NF-5)<"20140801000000"&&$4=="757") print   $2","$3","$4","$6","$5","$7","$8","$(NF-2)","$(NF-3)","$(NF-4) }' | bzip2 > /home/oracle/jksx_7y_foshan_cancle.txt.bz2
+然后匹配信息核对数量
