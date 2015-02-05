@@ -1,0 +1,47 @@
+      select  n.mobile_sn 号码,m.city 地市,o.opt_cost 业务 ,to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 开通时间,
+                    to_char(n.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 取消时间
+  from new_wireless_subscription n, opt_code o, mobilenodist m
+ where n.appcode = o.appcode
+   and substr(n.mobile_sn, 1, 7) = m.beginno
+   and n.mobile_sub_time >= to_date('2014-01-01', 'yyyy-mm-dd')
+   and n.mobile_sub_time < to_date('2015-01-01', 'yyyy-mm-dd')
+   and n.appcode ='10511008'
+   and m.province='江苏'
+   and n.mobile_sub_state='3'
+   -----------下边取退订的-------------
+   158上crontab上写为
+ 27 16 04  02 *  bzcat /home/oracle/etl/data/data/snapshot/archives.txt.bz2 | awk -F'[|^]' '{if($6=="10511008"&&$(NF-11)>="20140101000000"&&$(NF-11)<="20150101000000"&&$3=="025") print   $2","$3","$4","$6","$5","$7","$8","$(NF-2)","$(NF-3)","$(NF-4) }' | bzip2 > /home/oracle/flbk_1011y_xinzeng_cancle.txt.bz2
+下载到本地
+cat flbk_1011y_xinzeng_cancle.txt | awk -F',' '{print $1","$5","$6","$7;}'  > 1.txt
+awk -F'[,]' -v CODE_DIR=nodist.txt '{ if(FILENAME==CODE_DIR) d[$3]=$5; else if( substr($1,1,7) in d)  print $1"\t"d[substr($1,1,7)]"\t"$2"\t"$3"\t"$4}'   nodist.txt 1.txt > 2.txt
+sed -i 's/DYJLB_MMS/电影俱乐部彩信/g;' 2.txt
+EXCEL操作函数
+DATEDIF(开始日期,结束日期,第三参数)
+DATEDIF(D2,F2,"m")
+-----------------排重-----------------
+cat 2.txt | sort -u > tuiding.txt
+----------------------------然后取法律百科彩信新增在线的-----------
+     select  n.mobile_sn 号码,m.city 地市,o.opt_cost 业务 ,to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 开通时间,
+                    to_char(n.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 取消时间
+  from new_wireless_subscription n, opt_code o, mobilenodist m
+ where n.appcode = o.appcode
+   and substr(n.mobile_sn, 1, 7) = m.beginno
+   and n.mobile_sub_time >= to_date('2014-01-01', 'yyyy-mm-dd')
+   and n.mobile_sub_time < to_date('2015-01-01', 'yyyy-mm-dd')
+   and n.appcode ='10511051'
+   and m.province='江苏'
+   and n.mobile_sub_state='3'
+   -----------下边取退订的-------------
+   158上crontab上写为
+   45 16 04  02 *  bzcat /home/oracle/etl/data/data/snapshot/archives.txt.bz2 | awk -F'[|^]' '{if($6=="10511051"&&$(NF-11)>="20140101000000"&&$(NF-11)<="20150101000000"&&$3=="025") print   $2","$3","$4","$6","$5","$7","$8","$(NF-2)","$(NF-3)","$(NF-4) }' | bzip2 > /home/oracle/flbk_nanjing_xinzeng_cancle.txt.bz2
+下载到本地
+cat flbk_nanjing_xinzeng_cancle.txt | awk -F',' '{print $1","$5","$6","$7;}'  > 3.txt
+awk -F'[,]' -v CODE_DIR=nodist.txt '{ if(FILENAME==CODE_DIR) d[$3]=$5; else if( substr($1,1,7) in d)  print $1"\t"d[substr($1,1,7)]"\t"$2"\t"$3"\t"$4}'   nodist.txt 3.txt > 4.txt
+sed -i 's/FLBK_MMS/12580生活播报-法律百科彩信版/g;' 4.txt
+EXCEL操作函数
+DATEDIF(开始日期,结束日期,第三参数)
+DATEDIF(D2,F2,"m")
+DATEDIF(D2,F2,"d")
+=IF(F1<=3,0,G1+1)
+-----------------排重-----------------
+cat 4.txt | sort -u > tuiding.txt
