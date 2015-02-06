@@ -1,0 +1,22 @@
+ awk  -F '|' -v opt_code=opt_code_sjyl.txt      -v file_oka=BOSS_MORE_ok.txt -v file_ok1=boss_export.txt      '{ if(FILENAME == opt_code   )  o[$2]=$3","$4","$5","$6 ;else if(FILENAME == file_oka &&      ($6 in o )  )     print  $1","$8","$5","$6","o[$6] >> file_ok1}'  opt_code_sjyl.txt   BOSS_MORE_ok.txt 
+##01-WEB，02-网上营业厅，03-WAP，04-SMS，05-MMS，06-KJAVA，07-10086/营业厅
+cat  boss_export.txt | awk -F'[|,]' '{ print "http://172.16.88.67:8888/subscribe?id="$1"&servcode="$5"&appcode="$6"&longcode="$7"&command="$8"&channel1=SUB_BOSS&optime="$2; }'   > all_sub_url.txt
+
+##all_boss.txt 找到暂停号码进行暂停操作04：暂停05：恢复06：订购
+
+cat BOSS_MORE_ok.txt | awk -F'|' '{if($2=="04") print $1"|"$6 }' > all_boss_paused.txt 
+
+ awk  -F '[|\t,.]' -v opt_code=opt_code_sjyl.txt      -v file_oka=all_boss_paused.txt -v file_ok1=all_boss_paused_pre.txt      '{ 
+   if(FILENAME == opt_code   )  o[$2]=$3 ;
+      
+   else if(FILENAME == file_oka &&      ($2 in o )  )     print  $1","o[$2] >> file_ok1
+    
+   }'  opt_code_sjyl.txt   all_boss_paused.txt 
+
+#http://gweb.intra.umessage.com.cn:8888/pause?id=' || j.mobile ||chr(38) || 'servcode=' || o.servcode || chr(38) || 'reason=1'
+ cat all_boss_paused_pre.txt  | awk -F',' '{  print "http://172.16.88.67:8888/pause?id="$1"&servcode="$2"&reason=1" } ' > all_paused_url.txt
+ ----------------------各省统计数据----------------
+ awk -F'[|,]' -v CODE_DIR=nodist.txt '{ if(FILENAME==CODE_DIR) d[$4]=$1 ; else if((substr($1,1,7) in d) ) print $1"|"d[substr($1,1,7)]"|"$6;  }' nodist.txt  BOSS_MORE_ok.txt>boss_shengfen.txt
+---先匹配省份再匹配业务----
+awk -F'[|,]' -v CODE_DIR=opt_code_sjyl.txt '{ if(FILENAME==CODE_DIR) d[$2]=$1 ; else if($3 in d)  print $1"|"$2"|"d[$3];  }' opt_code_sjyl.txt  boss_shengfen.txt>boss_shengfen_yewu.txt
+awk  -F'|' '{ print $2"\t"$3 }' boss_shengfen_yewu.txt | sort | uniq -c
