@@ -1,0 +1,1 @@
+53 20 24 3 * bzcat /data0/match/orig/20140228/snapshot.txt.bz2|awk -F\| 'substr($4,1,8)=="20140228"{if($2=="10511022"&&$3=="06"){i++}else if($2=="10511022"&&$3=="07"){j++}}END{print i"|"j}' >>  /home/oracle/tongji.txt
