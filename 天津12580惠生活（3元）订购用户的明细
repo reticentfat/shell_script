@@ -1,0 +1,30 @@
+----------提取在线的-------------
+    select n.mobile_sn 用户号码,
+       to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 开通时间,
+       to_char(n.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 退订时间,
+       n.mobile_sub_channel 开通渠道
+  from new_wireless_subscription n, opt_code o, mobilenodist m
+ where n.appcode = o.appcode
+   and substr(n.mobile_sn, 1, 7) = m.beginno
+   and n.appcode = '10511052'
+   and m.province = '天津'
+   and n.mobile_sub_state = '3'
+   --------------然后提取10,11月新增且不在线的-------------
+   158上crontab上写为
+53 16 13  02 *  bzcat /home/oracle/etl/data/data/snapshot/archives.txt.bz2 | awk -F'[|^]' '{if(($6=="10511052")&&$3=="022") print   $2","$7","$8","$(NF-8)}' | bzip2 > /home/oracle/tianjin_hsh3yuan__cancle.txt.bz2
+导入到jf_1
+ctl如下
+LOAD DATA  INFILE 'F:\work\tianjin_hsh3yuan__cancle.txt' 
+BADFILE 'F:\work\dingzhi.txt.bad'
+truncate INTO TABLE  jf_1
+FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' 
+ TRAILING NULLCOLS
+( mobile,opttime,subtime,job_num,province,opt_code,biz_code,serial,city,cartype
+ )
+ 然后排重
+ select j.mobile, max(opttime), max(j.opttime) ,max(j.job_num)
+  from jf_1 j
+ group by j.mobile
+最后再把退订的数据用还在线的数据排重
+awk -F'[\t,]' -v CODE_DIR=天津12580惠生活（3元）订购用户的截止2月13日0点在线明细129855.txt '{ if(FILENAME==CODE_DIR) d[$1]=$1 ; else if(!($1 in d))  print $0;  }' 天津12580惠生活（3元）订购用户的截止2月13日0点在线明细129855.txt  417790.tsv>tuiding.txt
+
