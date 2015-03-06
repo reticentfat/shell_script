@@ -1,0 +1,75 @@
+211/data/wxlog/wxsub/ 
+
+快照文件 BJWZNEW_ok.txt 
+
+echo "TRUNCATE INTO TABLE ptj.BJWZ" 
+echo "FIELDS TERMINATED BY '^'" 
+echo "(" 
+echo " ID " codeid 
+echo " ,MOBILE_SN " 手机号 
+echo " ,ADDR_CODE " 手机省编码 
+echo " ,ADDR_NATION_CODE " 手机市编码 
+echo " ,OPT_CODE " 订购自定义业务编码 
+echo " ,MOBILE_SUB_CMD " 订购指令 
+echo " ,MOBILE_SUB_TIME DATE \"YYYY-MM-DD HH24:MI:SS\" " 订购时间 
+echo " ,MOBILE_SUB_STATE " 订购状态 
+echo " ,MOBILE_MODIFY_TIME DATE \"YYYY-MM-DD HH24:MI:SS\" " 退订时间 
+echo " ,MOBILE_MODIFY_STATE " 订购状态（最后更新状态） 
+echo " ,CAR_NO " 车牌号 
+echo " ,PRE_CAR_NO_NUM " 车牌号位数 
+echo " ,CAR_NO_NUM " 车牌个数 
+echo " ,CAR_SN " 驾驶证号码 
+echo " ,PRE_CAR_SN_NUM " 驾驶证号位数 
+echo " ,CAR_SN_NUM " 驾驶证个数 
+echo " ,NOW_FEE " 资费 
+echo " ,SUB_COL_1 "扩展字段1 
+echo " ,SUB_COL_2 "扩展字段2 
+echo " ,SUB_COL_3 "扩展字段3 
+echo " ,SUB_COL_4 "扩展字段4 
+echo " ,CAR_TYPE " 车型 
+echo " ,mobile_sub_channel " 订购渠道 
+echo " ,OPT_TYPE "业务编码 
+echo " ,CAR_CARD_ID "车架号 
+echo " ,ZUOXI_ID "坐席工号 
+echo " ,CAR_ADDR "车牌归属地 
+echo " ,opt_addr "业务省份缩写 
+echo " ,CP_ID "业务地市缩写 
+echo ")" 
+
+
+快照文件：FSWZ_ok.txt
+
+echo "TRUNCATE INTO TABLE ptj.FSWZ" 
+echo "FIELDS TERMINATED BY '^'" 
+echo "(" 
+echo " ID "codeid 
+echo " ,MOBILE_SN "手机号 
+echo " ,ADDR_CODE "手机省编码 
+echo " ,ADDR_NATION_CODE "手机市编码 
+echo " ,OPT_CODE "订购自定义业务编码 
+echo " ,MOBILE_SUB_CMD "订购指令 
+echo " ,MOBILE_SUB_TIME DATE \"YYYY-MM-DD HH24:MI:SS\" "订购时间 
+echo " ,MOBILE_SUB_STATE DATE \"YYYY-MM-DD HH24:MI:SS\" "订购状态 
+echo " ,MOBILE_MODIFY_TIME DATE \"YYYY-MM-DD HH24:MI:SS\" "退订时间 
+echo " ,MOBILE_MODIFY_STATE "订购状态（最后更新状态） 
+echo " ,CAR_NO "车牌号 
+echo " ,PRE_CAR_NO_NUM "车牌号位数 
+echo " ,CAR_NO_NUM "车牌个数 
+echo " ,CAR_SN "驾驶证号码 
+echo " ,PRE_CAR_SN_NUM "驾驶证号位数 
+echo " ,CAR_SN_NUM "驾驶证个数 
+echo " ,NOW_FEE "资费 
+echo " ,SUB_COL_1 "扩展字段1 
+echo " ,SUB_COL_2 "扩展字段2 
+echo " ,SUB_COL_3 "扩展字段3 
+echo " ,SUB_COL_4 "扩展字段4 
+echo " ,CAR_TYPE "车型 
+echo " ,FEE_APP_CODE "业务编码 
+echo " ,mobile_sub_channel "订购渠道 
+echo " ,CAR_CARD_ID "车架号 
+echo " ,ZUOXI_ID "坐席工号 
+echo " ,CAR_ADDR "车牌归属地 
+echo " ,opt_addr "业务省份缩写 
+echo " ,CP_ID "业务地市缩写 
+echo ")" 
+} 
