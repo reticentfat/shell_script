@@ -1,0 +1,48 @@
+--158上操作
+ /home/data_bak/ztbg/20141130
+ cat /home/data_bak/llsr/2014/20141130/qiangxiang_mms_pay_users.txt  | grep ',570,' | awk -F',' '{if($2=="10511051")print  }' |unix2dos | bzip2 >  /home/oracle/11y_flbkcai.txt.bz2
+-----------------下边是短信上边是彩信----------------------
+ cat /home/data_bak/llsr/2014/20141130/qiangxiang_sms_pay_users.txt  | grep ',570,' | awk -F',' '{if($2=="10301079")print  }' >  /home/oracle/11y_flbkduan.txt
+ awk -F',' -v CODE_DIR=/home/data_bak/ztbg/20141130/stats_month.wuxian_qianxiang.0 -v fileok=/home/oracle/11y_flbkduan_ok.txt -v fileno=/home/oracle/11y_flbkduan_0.txt '{
+if( FILENAME == CODE_DIR && $3>=2) d[$1$2]=$1","$2","$3; 
+else if ( FILENAME != CODE_DIR && substr($2,1,3) == "103" && $1$2 in d ) print >> fileok ; 
+else if ( FILENAME != CODE_DIR && substr($2,1,3) == "103" && !($1$2 in d )) print >> fileno ; 
+}' /home/data_bak/ztbg/20141130/stats_month.wuxian_qianxiang.0 /home/oracle/11y_flbkduan.txt
+------------因为法律百科短信版资费为3元所以下行数量得大于1.5（3/2）------------------------
+
+导入jf_1查订购时间
+导入文本例子13411002277		10301085
+ctl
+LOAD DATA  INFILE 'F:\work\wy.txt' 
+BADFILE 'F:\work\dingzhi.txt.bad'
+truncate INTO TABLE  jf_1
+FIELDS TERMINATED BY '	' OPTIONALLY ENCLOSED BY '"' 
+ TRAILING NULLCOLS
+( job_num,opttime,province,opt_code,mobile,biz_code,serial,subtime,city,cartype
+ )
+ sql语句
+ select  j.job_num 用户号码,
+       to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 订购时间，
+      to_char(n.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 退订时间，
+       j.opttime
+     
+  from jf_1 j left join new_wireless_subscription n
+on  j.job_num = n.mobile_sn
+ and j.opttime=n.appcode
+ and n.mobile_sub_state='3'
+ 还有部分号码需要从退订快照取
+ F:\flbk\20150309内操作~匹配订购时间退订时间
+ awk -F'[\t]' -v filekong=kong.tsv -v filequan=quan.tsv '{if( $2=="" ) print >>filekong; else print >>filequan;}' flbk_no.txt
+ awk -F'[\t,]' -v CODE_DIR=flbk_all_cancle.txt '{ if(FILENAME==CODE_DIR) d[$1$4]=$0 ; else if( !($1$4 in d) ) print $0 }' flbk_all_cancle.txt  kong.tsv > flbk_no_ok.txt
+awk -F'[\t,]' -v CODE_DIR=kong.tsv '{ if(FILENAME==CODE_DIR) d[$1$4]=$0 ; else if( ($1$4 in d) ) print $0 }' kong.tsv flbk_all_cancle.txt   > flbk_in_ok.txt
+然后吧15157063923	2014-01-13 16:46:17	2014-03-09 09:16:09	10301079
+导入jf_1排重
+LOAD DATA  INFILE 'F:\work\wy.txt' 
+BADFILE 'F:\work\dingzhi.txt.bad'
+truncate INTO TABLE  jf_1
+FIELDS TERMINATED BY '	' OPTIONALLY ENCLOSED BY '"' 
+ TRAILING NULLCOLS
+( mobile,job_num,opttime,subtime,province,opt_code,biz_code,serial,city,cartype
+ )
+select j.mobile,j.job_num,max(j.opttime),max(j.subtime) from jf_1 j
+ group by j.mobile,j.job_num
