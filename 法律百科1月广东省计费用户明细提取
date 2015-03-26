@@ -1,0 +1,56 @@
+--158上操作
+ /home/data_bak/ztbg/20141130
+ cat /data0/2015/20150131/qiangxiang_mms_pay_users.txt  | grep ',200,' | awk -F',' '{if($2=="10511051")print  }' |unix2dos | bzip2 >  /home/oracle/11y_flbkcai.txt.bz2
+-----------------下边是短信上边是彩信----------------------
+ cat /data0/2015/20150131/qiangxiang_sms_pay_users.txt  | grep ',200,' | awk -F',' '{if($2=="10301079")print  }' >  /home/oracle/11y_flbkduan.txt
+ awk -F',' -v CODE_DIR=/data0/match/orig/mm7/20150131/stats_month.wuxian_qianxiang.0 -v fileok=/home/oracle/11y_flbkduan_ok.txt -v fileno=/home/oracle/11y_flbkduan_0.txt '{
+if( FILENAME == CODE_DIR && $3>=2) d[$1$2]=$1","$2","$3; 
+else if ( FILENAME != CODE_DIR && substr($2,1,3) == "103" && $1$2 in d ) print >> fileok ; 
+else if ( FILENAME != CODE_DIR && substr($2,1,3) == "103" && !($1$2 in d )) print >> fileno ; 
+}' /data0/match/orig/mm7/20150131/stats_month.wuxian_qianxiang.0 /home/oracle/11y_flbkduan.txt
+------------因为法律百科短信版资费为3元所以下行数量得大于1.5（3/2）------------------------
+
+导入jf_1查订购时间
+导入文本例子13411002277		10301085
+ctl
+LOAD DATA  INFILE 'F:\work\wy.txt' 
+BADFILE 'F:\work\dingzhi.txt.bad'
+truncate INTO TABLE  jf_1
+FIELDS TERMINATED BY '	' OPTIONALLY ENCLOSED BY '"' 
+ TRAILING NULLCOLS
+( job_num,opttime,province,opt_code,mobile,biz_code,serial,subtime,city,cartype
+ )
+ sql语句
+ select  j.job_num 用户号码,
+       to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') 订购时间，
+      to_char(n.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') 退订时间，
+       j.opttime
+     
+  from jf_1 j left join new_wireless_subscription n
+on  j.job_num = n.mobile_sn
+ and j.opttime=n.appcode
+ and n.mobile_sub_state='3'
+ 还有部分号码需要从退订快照取
+wy.txt.bz2 字段如下
+13415716606^10301079^
+上传服务器匹配
+52 16 26 03 * bzcat /home/oracle/wy.txt.bz2  /home/oracle/etl/data/data/snapshot/archives.txt.bz2  | awk -F'[|^]' '{if(NF==3) aa[$1$2]=$1$2;else if(($2$6 in aa))  print $2","$6","$7","$8}' | bzip2 > /home/oracle/js.txt.bz2
+
+
+然后吧15157063923	2014-01-13 16:46:17	2014-03-09 09:16:09	10301079
+导入jf_1排重
+LOAD DATA  INFILE 'F:\work\wy.txt' 
+BADFILE 'F:\work\dingzhi.txt.bad'
+truncate INTO TABLE  jf_1
+FIELDS TERMINATED BY '	' OPTIONALLY ENCLOSED BY '"' 
+ TRAILING NULLCOLS
+( mobile,job_num,opttime,subtime,province,opt_code,biz_code,serial,city,cartype
+ )
+select j.mobile,j.job_num,max(j.opttime),max(j.subtime) from jf_1 j
+ group by j.mobile,j.job_num
+------------然后匹配地市-------------
+awk -F'[\t,]' -v CODE_DIR=nodist_umgstat.txt '{ if(FILENAME==CODE_DIR) d[$4]=$2 ; else if((substr($1,1,7) in d) ) print $1","d[substr($1,1,7)]",订购中,"$2","$3","$4;  }' nodist_umgstat.txt  quan.tsv>1.txt
+ awk -F'[\t,]' -v CODE_DIR=nodist_umgstat.txt '{ if(FILENAME==CODE_DIR) d[$4]=$2 ; else if((substr($1,1,7) in d) ) print $1","d[substr($1,1,7)]",已退定,"$3","$4","$2;  }' nodist_umgstat.txt  222.tsv>2.txt
+ cat 1.txt 2.txt > all.txt
+替换
+sed -i 's/,10511051/,12580生活播报-法律百科彩信版/g;s/,10301079/,12580生活播报-法律百科短信版/g' all.txt
