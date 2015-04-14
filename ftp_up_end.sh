@@ -1,6 +1,6 @@
 DATE_FILE=`date +%Y%m`
-FILE_NAME=guangdong_qianxiang_nco_bgn.$DATE_FILE.txt
-DATE_DIR_FTP=`date +%Y-%m-04`
+FILE_NAME=guangdong_qianxiang_nco_end.$DATE_FILE.txt
+DATE_DIR_FTP=`date +%Y-%m-24`
 GDQX_DIR="/data/wuying/zhangfang/guangdong_qx"
 
 
