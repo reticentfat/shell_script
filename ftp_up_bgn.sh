@@ -5,7 +5,7 @@ GDQX_DIR="/data/wuying/zhangfang/guangdong_qx"
 
 
 ftp -v -n 218.206.87.169 << EOF
-user guangdong gmcc888
+user guangdong 123
 cd $DATE_DIR_FTP
 lcd $GDQX_DIR
 prompt
