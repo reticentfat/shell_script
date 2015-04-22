@@ -1,0 +1,9 @@
+首选启动数据库 
+用oracle账号登录158服务器，然后运行以下命令  
+sqlplus /nolog 
+conn /as sysdba 
+startup 
+quit
+然后启动监听: 
+进入/opt/ORCLfmap/prot1_64/bin/ 后运行：
+lsnrctl start
