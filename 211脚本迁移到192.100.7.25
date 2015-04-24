@@ -63,4 +63,4 @@
 0 13 * * * sh /home/wuying/province_yhq.sh > /dev/null 2>&1 
 40 10 11 3 * sh /home/wuying/province_create.sh > /dev/null 2>&1
 -------------------------------------------
-scp wuying@172.16.100.211:/home/wuying/sichuan_DYJLB_MMS.sh /home/gateway/bin/
+scp wuying@172.16.100.211:/home/wuying/sichuan_DYJLB_MMS.sh /data/211/bin/
