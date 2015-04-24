@@ -1,0 +1,66 @@
+192.100.7.25 账号 gateway 密码 
+将211目前的crontab 里面的shell脚本下载到本地，打开程序修改程序中写文件的绝对路径为 /data/211/***/ 这个***为原来在211上的路径中最后一个文件夹名称。现在13上面缺少那个目录名，就在/data/211下建立这个文件名字即可。另外程序中有涉及到最后传送到其它服务器上的scp 命令 ，和小马沟通一下，看新服务器对应的IP是多少，直接改成新新服务器IP和账号，并且在新服务器上建立相应的目录。（注意修改好后做一个记录，后期需要给这些服务器之间重新建立自动传送的空密码主键。届时，我对着你记录的新服务器IP和账号做对应的主键。）不明白之处及时沟通。
+修改注意事项：
+    一定先看一遍程序，再用查找替换的方法修改。不然肉眼修改会少改的。修改之间做好对应新服务器目录的新建工作，确保程序执行时有对应的文件夹存在。
+
+王远修改以下sh和php文件：
+00 12 * * * sh /home/wuying/sichuan_DYJLB_MMS.sh > /dev/null 2>&1 
+0 14 * * * sh /home/wuying/shandong_wz_down.sh > /dev/null 2>&1 
+
+2 0 * * * sh /home/wuying/bin/phone_ylsj_creatdir.sh > /dev/null 2>&1 
+40 7 * * * /usr/local/bin/php /home/wuying/bin/neimeng_dzyhjpk_update/update.php 2>&1 
+50 18 * * * /usr/local/bin/php /home/wuying/bin/neimeng_dzyhjpk_update/update_mms.php 2>&1 
+12 11 23 04 * /usr/local/bin/php /home/wuying/bin/neimeng_dzyhjpk_update/update_mms_bj.php 2>&1 
+0 11 4 * * bash /data/wuying/zhangfang/ftp_up_bgn.sh 
+0 11 25 * * bash /data/wuying/zhangfang/ftp_up_end.sh 
+15 9 * * * sh /home/wuying/filter_zjyhq.sh > /dev/null 2>&1 
+25 9 * * * sh /home/wuying/beijing_zxtj.sh > /dev/null 2>&1 
+0 8 * * * sh /home/wuying/jxkwzx_yy.sh > /dev/null 2>&1 
+15,30 5 * * * sh /home/wuying/bin/fswz_insertupdate.sh > /dev/null 2>&1 
+30 6 * * 1 sh /home/wuying/week_rm.sh > /dev/null 2>&1 
+45 9 * * 1,2,5 sh /home/wuying/week_cp.sh > /dev/null 2>&1 
+40 11 * * * sh /home/wuying/guangxi_jkbd.sh > /dev/null 2>&1 
+15 11 * * * sh /home/wuying/bin/beijing_hsh.sh 
+30 7 * * * sh /home/wuying/bin/jiangshu_arcitv.sh > /dev/null 2>&1 
+30 0 * * * sh /home/wuying/export_black.sh /data/wuying/PKFILTER_DIC/ > /dev/null 2>&1 
+
+
+武英修改以下shell文件。
+35 * * * * sh /home/wuying/bin/phone_ylsj_dowd.sh > /dev/null 2>&1 
+30 18 * * * bash /home/wuying/bin/mms_sms_create.sh 2>&1 
+0 9 * * * sh /home/wuying/export_wireless_temp.sh > /dev/null 2>&1 
+50 11 * * * sh /home/wuying/bin/zuoxi_log.sh > /dev/null 2>&1 
+
+#16 17 12 8 * sh /data/wuying/zuoxi_log_month.sh > /dev/null 2>&1 
+###15 9 * * 1,2,5 sh /home/wuying/week_cp.sh >> /data/wuying/log/week_cp.log 
+
+#10 14 * * 1 sh /home/wuying/bin/beijing_qnzlmms_pause.sh > /dev/null 2>&1 
+0 9 * * 2,5 sh /home/wuying/guandong_hd_week.sh > /dev/null 2>&1 
+10 15 * * 4 sh /data/wuying/guizhou_hsh.sh > /dev/null 2>&1 
+#0 10 * * * sh /home/wuying/ningxia_qzt.sh 
+35 10 * * * sh /home/wuying/recommon_dingzhi.sh > /dev/null 2>&1 
+
+#41 17 * * * sh /home/wuying/bin/beijing_hsh.sh 
+*/20 8-23,0-2 * * * bash /home/wuying/PK_batch.sh /home/wuying/ PK_filename.sh /data/wuying/PK_OKFILE/ /data/wuying/PKFILTER_DIC/ >> /data/wuying/PK_log.txt 
+10 0 1 * * sh /data/wuying/pkfiletar.sh >> /data/wuying/PK_BOSS_log.txt 
+*/20 9-23,0-2 * * * bash /home/wuying/PK_BOSSERRO.sh /data/wuying/PKFILTER_DIC/ >>/data/wuying/PK_BOSSERROR.txt 
+0 14 * * * sh /data/wuying/PK_SUCCESSBATCH_STATE.sh > /dev/null 2>&1 
+
+
+15 02 * * * sh /home/wuying/scp_bjwz_recomm.sh > /dev/null 2>&1 
+#10 22 * * * sh /home/wuying/cmyh.sh 
+#10 16 22 4 * sh /home/wuying/shbb_cmyh.sh 
+30 12 * * * sh /home/wuying/boss_sys.sh >> /data/wuying/PKFILTER_DIC/boss_log.txt 
+35 12 * * * sh /home/wuying/scpboss.sh >> /data/wuying/PKFILTER_DIC/scpboss_log.txt 
+45 8 * * * sh /data/wuying/scp_new_sub.sh > /dev/null 2>&1 
+##10 15 15 4 * sh /home/wuying/export_wireless_temp.sh 
+##53 16 * * * sh /home/wuying/ldr_shbb_date.sh 
+##33 16 22 8 * sh /data/wuying/neimeng.sh 
+##48 17 30 12 * sh /home/wuying/sxyhq_8y.sh 
+30 13 2 * * sh /home/wuying/scpshbb_1000.sh > /dev/null 2>&1 
+05 12 * * * sh /home/wuying/scp_1000_0.sh > /dev/null 2>&1 
+#0 13 * * * sh /home/wuying/province_yhq_user_count.sh > /dev/null 2>&1 
+0 13 * * * sh /home/wuying/province_yhq.sh > /dev/null 2>&1 
+40 10 11 3 * sh /home/wuying/province_create.sh > /dev/null 2>&1
+-------------------------------------------
+scp wuying@172.16.100.211:/home/wuying/sichuan_DYJLB_MMS.sh /home/gateway/bin/
