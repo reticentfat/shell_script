@@ -1,0 +1,9 @@
+请从以下网址中下载 users.txt.bz2 下发列表文件，文件中第二列是省编码，第三列是市编码。有些彩信包是需要细分到省份或者地市的，需要将号码分包为对应的省份地市下发。超过50万的再分成小包下发。
+http://miscweb2.intra.umessage.com.cn:9999/data/dump/SHBB/ 
+
+
+下发列表格式样例：分隔符为空格 
+
+13521030932 010 10 22200030 None None None 
+13811370524 010 10 22200030 None None None 
+cat users.txt | awk -F' ' '{d=$2".txt";print $0>>d }'
