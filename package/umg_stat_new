@@ -1,0 +1,1946 @@
+CREATE OR REPLACE PACKAGE BODY UMG_STAT_NEW is
+
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                        日简报统计的数据                                                         --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatDayInfo(i_BEGINDATE   varchar2                                      --日志日期条件,格式:yyyy-mm-dd
+                      ) return UMG_STAT_OPERTOTDAY_TABLE pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+
+    v_DEAL_DATE       VARCHAR2(10);          --日期
+    v_OPER_CODE       VARCHAR2(2);           --业务代码
+    v_OPER_NAME       VARCHAR2(30);          --业务名称
+    v_ON_USER_NUM     INTEGER;               --留存用户数
+    v_JF_USER_NUM     INTEGER;               --计费用户数
+    v_NEW_USER_NUM    INTEGER;               --新增用户数
+    v_TD_USER_NUM     INTEGER;               --退定用户数
+    v_date            VARCHAR2(30);
+    v_tmp             integer;
+    vv_on_user_num    INTEGER;
+  begin
+       v_SQL :=' deal_date=TO_CHAR('''|| i_BEGINDATE ||''')';
+
+       v_SQL := 'select deal_date,oper_code,oper_name,on_user_num,jf_user_num,new_user_num,td_user_num from tb_rpt_oper_tot_day  where 1=1 and  ' || v_SQL || '';
+       v_SQL := v_SQL||' order by oper_code';
+
+        open tmp_cursor for v_SQL;
+        loop
+         fetch tmp_cursor into v_DEAL_DATE,v_OPER_CODE,v_OPER_NAME,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM;
+         exit when tmp_cursor%notfound;
+
+             --下面计算留存用户数，留存用户数取每个月1号的数据；
+             --v_date:='';
+             --select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+            v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+             select count(*) into v_tmp from tb_rpt_oper_tot_day where deal_date=v_date and oper_name=v_OPER_NAME;
+             if v_tmp <> 0 then
+               select on_user_num into vv_on_user_num from tb_rpt_oper_tot_day where deal_date= v_date and oper_name=v_OPER_NAME;
+             else
+               vv_on_user_num:=0;
+
+             end if;
+
+
+             pipe row(UMG_STAT_OPERTOTDAY_RECORD (v_DEAL_DATE,
+                                             v_OPER_CODE,
+                                             v_OPER_NAME,
+                                             vv_on_user_num,
+                                             --v_ON_USER_NUM,
+                                             v_JF_USER_NUM,
+                                             v_NEW_USER_NUM,
+                                             v_TD_USER_NUM));
+         end loop;
+         close tmp_cursor;
+
+    return;
+  end;
+
+
+   ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                           按业务统计 ，临时表                                                   --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatYeWuInfo(i_BEGINDATE   varchar2,                                          --日志起始日期条件,格式:yyyy-mm-dd
+                        i_ENDDATE     varchar2,                                          --日志终止日期条件,格式:yyyy-mm-dd
+                        i_SERVICENAME    varchar2                                        --业务名称
+                       ) return UMG_STAT_OPERDAY_TABLE pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+    --v_DEAL_DATE        VARCHAR2(10);
+    --v_PROV_CODE        VARCHAR2(20);package bodies
+    --v_PROV_NAME        VARCHAR2(20);
+    --v_OPER_CODE        VARCHAR2(2);
+    v_OPER_NAME        VARCHAR2(30);
+    --v_ON_USER_NUM      INTEGER;
+    v_JF_USER_NUM      INTEGER;
+    v_NEW_USER_NUM     INTEGER;
+    v_TD_USER_NUM      INTEGER;
+    v_MFTD_USER_NUM    INTEGER;
+    v_PX_USER_NUM      INTEGER;
+
+    --v_CITY_CODE        VARCHAR2(20);
+    --v_CITY_NAME        VARCHAR2(20);
+    v_date            VARCHAR2(30);
+    v_tmp             integer;
+    vv_on_user_num    INTEGER;
+    vv_on_jfuser_num      INTEGER;
+   v_DRTD_NUM   INTEGER;
+   v_DYTD_NUM INTEGER;
+   v_ZTYHDY_NUM INTEGER;
+   v_ZTYH_NUM      INTEGER;
+  begin
+         v_SQL :='and a.deal_date>=TO_CHAR('''|| i_BEGINDATE ||''') and a.deal_date<=TO_CHAR('''|| i_ENDDATE ||''')';
+
+        if i_SERVICENAME ='所有业务' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(a.oper_name,''' || i_SERVICENAME || ''')>0';
+
+        end if;
+       --日期 业务名称   上月留存用户数  留存计费用户数 新增包月用户 新增计费用户 新增退定用户 即定即退用户 免费期退定用户 当月定当月退用户 新增用户暂停数 全部暂停用户数
+ --,JF_USER_NUM	--新增计费用户数
+ --,NEW_USER_NUM	--新增包月用户数
+ --,TD_USER_NUM	--新增退订用户数 每天的新增
+ --,MFTD_USER_NUM --免费退订用户数
+--,DRTD_NUM	 		--当日订当日退订
+--,DYTD_NUM	 	--当月订当月退订procedures
+ --,ZTYHDY_NUM	 	--	当月当日累计暂停用户
+ --ZTYH_NUM,INTEGER;  	 ---插入截止当日(在线用户)累计暂停用户
+  --,ON_JFUSER_NUM	--留存用户数
+
+       --v_SQL := 'select a.oper_name,sum(on_user_num),sum(jf_user_num),sum(new_user_num),sum(td_user_num),sum(mftd_user_num),sum(px_user_num) from tb_rpt_oper_day a where 1=1 ' || v_SQL || '';
+       v_SQL := 'select  a.oper_name,sum(jf_user_num),sum(new_user_num),sum(td_user_num),sum(mftd_user_num), sum(DRTD_NUM),sum(DYTD_NUM),sum(ZTYH_NUM),sum(ZTYHDY_NUM) from tb_rpt_oper_day a where oper_name not like ''%违章%'' ' || v_SQL || '';
+       v_SQL := v_SQL||' group by a.oper_name ';
+
+        open tmp_cursor for v_SQL;
+        loop
+         fetch tmp_cursor into  v_OPER_NAME, v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM, v_DRTD_NUM,v_DYTD_NUM,v_ZTYH_NUM,v_ZTYHDY_NUM;
+         exit when tmp_cursor%notfound;
+
+               --下面计算留存用户数，留存用户数取每个月1号的数据；
+             --v_date:='';
+            -- select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+            v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+             select count(*) into v_tmp from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date=v_date and oper_name=v_OPER_NAME;
+             if v_tmp <> 0 then
+               select sum(on_user_num) into vv_on_user_num from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date= v_date and oper_name=v_OPER_NAME;
+               select sum(ON_JFUSER_NUM) into vv_on_jfuser_num from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date= v_date and oper_name=v_OPER_NAME;
+
+             else
+               vv_on_user_num:=0;
+               vv_on_jfuser_num:=0;
+
+             end if;
+--日期 业务名称 留存用户数 新增包月用户 新增计费用户 新增退订用户 免费期退订用户
+             pipe row(UMG_STAT_OPERDAY_RECORD ( '',
+
+                                             v_ZTYH_NUM,
+                                              vv_on_jfuser_num,
+                                              '',
+                                             v_OPER_NAME,
+                                             vv_on_user_num,
+                                             v_JF_USER_NUM,
+                                             v_NEW_USER_NUM,
+                                             v_TD_USER_NUM,
+                                             v_MFTD_USER_NUM,
+                                             v_DRTD_NUM,
+                                             v_DYTD_NUM,
+                                             v_ZTYHDY_NUM
+                                             ));
+         end loop;
+         close tmp_cursor;
+
+    return;
+  end;
+
+  --------------------------------------------------------------------
+
+
+
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                         按业务统计，程序调用最终存储过程                                                        --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatYeWuInfo_1(i_STARTROW integer,                                              --查询起始行号
+                           i_MAXROW integer,                                                --最多返回记录行数
+                           i_BEGINDATE   varchar2,                                          --日志起始日期条件,格式:yyyy-mm-dd
+                           i_ENDDATE     varchar2,                                          --日志终止日期条件,格式:yyyy-mm-dd
+                           i_SERVICENAME    varchar2                                        --业务名称
+                           ) return UMG_STAT_OPERDAY_TABLE pipelined as
+
+  v_sql_item              varchar2(2000);
+  type v_cursor is ref cursor;
+  tmp_cursor_item  v_cursor;
+
+    --v_DEAL_DATE        VARCHAR2(10);
+    --v_PROV_CODE        VARCHAR2(20);
+    --v_PROV_NAME        VARCHAR2(20);
+    --v_OPER_CODE        VARCHAR2(2);
+    v_OPER_NAME        VARCHAR2(30);
+    v_ON_USER_NUM      INTEGER;
+    v_ON_jfUSER_NUM      INTEGER;
+    v_JF_USER_NUM      INTEGER;
+    v_NEW_USER_NUM     INTEGER;
+    v_TD_USER_NUM      INTEGER;
+    v_MFTD_USER_NUM    INTEGER;
+    v_PX_USER_NUM      INTEGER;
+    --v_CITY_CODE        VARCHAR2(20);
+    --v_CITY_NAME        VARCHAR2(20);
+    --v_tmp           INTEGER;
+  -- vv_on_user_num    INTEGER;
+   --vv_on_jfuser_num      INTEGER;
+   v_DRTD_NUM   INTEGER;
+   v_DYTD_NUM INTEGER;
+   v_ZTYHDY_NUM INTEGER;
+   v_ZTYH_NUM      INTEGER;
+
+  begin
+           v_sql_item:='';
+           v_sql_item:='(select rownum as num, t.* from (select * from table(umg_stat_new.StatYeWuInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_SERVICENAME ||'''))'|| v_sql_item ||') t where rownum<'|| to_char(i_startrow +i_maxrow) ||')';
+
+           v_sql_item:='select  v_PROV_CODE ,v_PROV_NAME,v_OPER_NAME,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_PX_USER_NUM ,v_CITY_CODE ,v_CITY_NAME from '|| v_sql_item || ' where num>='||i_startrow;
+
+           open tmp_cursor_item for v_sql_item;
+               loop
+                 fetch tmp_cursor_item into v_ZTYH_NUM,v_ON_jfUSER_NUM, v_OPER_NAME,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_DRTD_NUM,v_DYTD_NUM,v_ZTYHDY_NUM ;
+                 exit when tmp_cursor_item%notfound;
+
+
+                 pipe row(UMG_STAT_OPERDAY_RECORD ('',
+
+                                             v_ZTYH_NUM,
+                                              v_ON_jfUSER_NUM,
+                                              '',
+                                             v_OPER_NAME,
+                                             v_ON_USER_NUM,
+                                             v_JF_USER_NUM,
+                                             v_NEW_USER_NUM,
+                                             v_TD_USER_NUM,
+                                             v_MFTD_USER_NUM,
+                                             v_DRTD_NUM,
+                                             v_DYTD_NUM,
+                                             v_ZTYHDY_NUM));
+
+               end loop;
+           close tmp_cursor_item;
+    return;
+  end;
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                  按业务统计的数据总数，程序调用最终存储过程                                                     --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatYeWuInfo_1_Count(i_BEGINDATE   varchar2,                                          --日志起始日期条件,格式:yyyy-mm-dd
+                                 i_ENDDATE     varchar2,                                          --日志终止日期条件,格式:yyyy-mm-dd
+                                 i_SERVICENAME    varchar2                                        --业务名称
+                                 ) return integer as
+
+  v_SQL varchar2(32767);
+  v_Count integer;
+
+  begin
+
+           v_SQL:='select count(*) from (select * from table(umg_stat_new.StatYeWuInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_SERVICENAME ||''')))';
+
+          execute immediate v_SQL into v_Count;
+
+     return v_Count;
+  exception
+    when others then return SQLCODE;
+  end;
+
+   ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                           按省份,地市统计，临时表                                               --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatProvinceInfo(i_BEGINDATE   varchar2,                                          --日志起始日期条件,格式:yyyy-mm-dd
+                        i_ENDDATE     varchar2,                                          --日志终止日期条件,格式:yyyy-mm-dd
+                        i_PROVINCE       varchar2,                                       --省份编码
+                        i_SERVICENAME    varchar2,                                       --业务名称
+                        i_type           varchar2                                        --统计类型，1--按省份统计，2--按地市统计
+                       ) return UMG_STAT_OPERDAYNEW_P_TABLE pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+    --v_DEAL_DATE        VARCHAR2(10);
+    v_PROV_CODE        VARCHAR2(20);
+    v_PROV_NAME        VARCHAR2(20);
+    --v_OPER_CODE        VARCHAR2(2);
+    v_OPER_NAME        VARCHAR2(30);
+    --v_ON_USER_NUM      INTEGER;
+    v_JF_USER_NUM      INTEGER;
+    v_NEW_USER_NUM     INTEGER;
+    v_TD_USER_NUM      INTEGER;
+    v_MFTD_USER_NUM    INTEGER;
+    v_PX_USER_NUM      INTEGER;
+    --v_CITY_CODE        VARCHAR2(20);
+    v_CITY_NAME        VARCHAR2(20);
+     v_date            VARCHAR2(30);
+    v_tmp             integer;
+    vv_on_user_num    INTEGER;
+   vv_on_jfuser_num      INTEGER;
+   v_DRTD_NUM   INTEGER;
+   v_DYTD_NUM INTEGER;
+   v_ZTYHDY_NUM INTEGER;
+   v_ZTYH_NUM      INTEGER;
+   v_deal_date  VARCHAR2(20);
+  begin
+         v_SQL :='and a.deal_date>=TO_CHAR('''|| i_BEGINDATE ||''') and a.deal_date<=TO_CHAR('''|| i_ENDDATE ||''')';
+
+        if i_SERVICENAME ='所有业务' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(a.oper_name,''' || i_SERVICENAME || ''')>0';
+
+        end if;
+
+       if i_PROVINCE <> '999' then
+           v_SQL := v_SQL || ' and a.PROV_CODE=''' || i_PROVINCE || '''';
+        end if;
+
+        if i_type='1' then   --统计类型，1--按省份统计
+               v_SQL := 'select   a.PROV_CODE,a.PROV_NAME,a.oper_name,sum(jf_user_num),sum(new_user_num),sum(td_user_num),sum(mftd_user_num),sum(DRTD_NUM),sum(DYTD_NUM),sum(ZTYH_NUM),sum(ZTYHDY_NUM) from tb_rpt_oper_day a where  oper_name not like ''%违章%''  ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by a.PROV_CODE,a.PROV_NAME,a.oper_name ';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into  v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_DRTD_NUM,v_DYTD_NUM,v_ZTYH_NUM,v_ZTYHDY_NUM;
+                 exit when tmp_cursor%notfound;
+
+
+                     --下面计算留存用户数，留存用户数取每个月1号的数据；
+                   --v_date:='';
+                   --select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+                   v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+                   select count(*) into v_tmp from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date=v_date and oper_name=v_OPER_NAME and PROV_NAME=v_PROV_NAME;
+                   if v_tmp <> 0 then
+                     select sum(on_user_num) into vv_on_user_num from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date= v_date and oper_name=v_OPER_NAME  and PROV_NAME=v_PROV_NAME;
+                     select sum(ON_JFUSER_NUM) into vv_on_jfuser_num from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date= v_date and oper_name=v_OPER_NAME and PROV_NAME=v_PROV_NAME;
+
+
+                  else
+                     vv_on_user_num:=0;
+                     vv_on_jfuser_num:=0;
+
+                   end if;
+
+                     pipe row(UMG_STAT_OPERDAYNEW_P_RECORD (v_ZTYH_NUM,
+                                                     v_PROV_CODE,
+                                                     v_PROV_NAME,
+                                                     vv_on_jfuser_num,
+                                                     v_OPER_NAME,
+                                                     --v_ON_USER_NUM,UMG_STAT_OPERDAYNEW_P_TABLE
+                                                     vv_on_user_num,
+                                                     v_JF_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     v_DRTD_NUM,
+                                                     v_DYTD_NUM,
+                                                     v_ZTYHDY_NUM,
+                                                     ''));
+                 end loop;
+                 close tmp_cursor;
+            end if;
+          if i_type='2' then  --统计类型，2--按地市统计
+              v_SQL := 'select  a.CITY_NAME,a.oper_name,sum(jf_user_num),sum(new_user_num),sum(td_user_num),sum(mftd_user_num),sum(DRTD_NUM),sum(DYTD_NUM),sum(ZTYH_NUM),sum(ZTYHDY_NUM)  from tb_rpt_oper_day  a where oper_name not like ''%违章%'' ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by  a.CITY_NAME,a.oper_name  ';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into  v_CITY_NAME,v_OPER_NAME,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_DRTD_NUM,v_DYTD_NUM,v_ZTYH_NUM,v_ZTYHDY_NUM;
+                 exit when tmp_cursor%notfound;
+
+                   --下面计算留存用户数，留存用户数取每个月1号的数据；
+                   --v_date:='';
+                   --select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+                   v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+                   select count(*) into v_tmp from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date=v_date and oper_name=v_OPER_NAME and CITY_NAME=v_CITY_NAME;
+                   if v_tmp <> 0 then
+                     select sum(on_user_num) into vv_on_user_num from tb_rpt_oper_day  where oper_name not like '%违章%' and deal_date= v_date  and oper_name=v_OPER_NAME and CITY_NAME=v_CITY_NAME;
+                     select sum(ON_JFUSER_NUM) into vv_on_jfuser_num from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date= v_date and oper_name=v_OPER_NAME and CITY_NAME=v_CITY_NAME;
+
+                   else
+                     vv_on_user_num:=0;
+                     vv_on_jfuser_num:=0;
+                   end if;
+                     pipe row(UMG_STAT_OPERDAYNEW_P_RECORD (v_ZTYH_NUM,
+                                                     v_ZTYHDY_NUM,
+                                                     '',
+                                                     vv_on_jfuser_num,
+                                                     v_OPER_NAME,
+                                                     --v_ON_USER_NUM,
+                                                     vv_on_user_num,
+                                                     v_JF_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     v_DRTD_NUM,
+                                                     v_DYTD_NUM,
+                                                     v_CITY_NAME,
+                                                     ''));
+
+
+
+                 end loop;
+                 close tmp_cursor;
+             end if;    
+              if i_type='3' then   --统计类型，1--按省份按日期统计
+               v_SQL := 'select a.deal_date,  a.PROV_CODE,a.PROV_NAME,a.oper_name,sum(jf_user_num),sum(new_user_num),sum(td_user_num),sum(mftd_user_num),sum(DRTD_NUM),sum(DYTD_NUM),sum(ZTYH_NUM),sum(ZTYHDY_NUM) from tb_rpt_oper_day a where  oper_name not like ''%违章%''  ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by a.PROV_CODE,a.PROV_NAME,a.oper_name,a.deal_date ';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_deal_date, v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_DRTD_NUM,v_DYTD_NUM,v_ZTYH_NUM,v_ZTYHDY_NUM;
+                 exit when tmp_cursor%notfound;
+
+
+                     --下面计算留存用户数，留存用户数取每个月1号的数据；
+                   --v_date:='';
+                   --select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+                   v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+                   select count(*) into v_tmp from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date=v_date and oper_name=v_OPER_NAME and PROV_NAME=v_PROV_NAME;
+                   if v_tmp <> 0 then
+                     select sum(on_user_num) into vv_on_user_num from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date= v_date and oper_name=v_OPER_NAME  and PROV_NAME=v_PROV_NAME;
+                     select sum(ON_JFUSER_NUM) into vv_on_jfuser_num from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date= v_date and oper_name=v_OPER_NAME and PROV_NAME=v_PROV_NAME;
+
+
+                  else
+                     vv_on_user_num:=0;
+                     vv_on_jfuser_num:=0;
+
+                   end if;
+
+                     pipe row(UMG_STAT_OPERDAYNEW_P_RECORD (v_ZTYH_NUM,
+                                                     v_PROV_CODE,
+                                                     v_PROV_NAME,
+                                                     vv_on_jfuser_num,
+                                                     v_OPER_NAME,
+                                                     --v_ON_USER_NUM,
+                                                     vv_on_user_num,
+                                                     v_JF_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     v_DRTD_NUM,
+                                                     v_DYTD_NUM,
+                                                     v_ZTYHDY_NUM,
+                                                     v_deal_date));
+                 end loop;
+                 close tmp_cursor;
+            end if;
+            if i_type='4' then  --统计类型，2--按地市统计
+              v_SQL := 'select a.deal_date, a.CITY_NAME,a.oper_name,sum(jf_user_num),sum(new_user_num),sum(td_user_num),sum(mftd_user_num),sum(DRTD_NUM),sum(DYTD_NUM),sum(ZTYH_NUM),sum(ZTYHDY_NUM)  from tb_rpt_oper_day  a where oper_name not like ''%违章%'' ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by  a.CITY_NAME,a.oper_name ,a.deal_date ';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_deal_date, v_CITY_NAME,v_OPER_NAME,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_DRTD_NUM,v_DYTD_NUM,v_ZTYH_NUM,v_ZTYHDY_NUM;
+                 exit when tmp_cursor%notfound;
+
+                   --下面计算留存用户数，留存用户数取每个月1号的数据；
+                   --v_date:='';
+                   --select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+                   v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+                   select count(*) into v_tmp from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date=v_date and oper_name=v_OPER_NAME and CITY_NAME=v_CITY_NAME;
+                   if v_tmp <> 0 then
+                     select sum(on_user_num) into vv_on_user_num from tb_rpt_oper_day  where oper_name not like '%违章%' and deal_date= v_date  and oper_name=v_OPER_NAME and CITY_NAME=v_CITY_NAME;
+                     select sum(ON_JFUSER_NUM) into vv_on_jfuser_num from tb_rpt_oper_day where oper_name not like '%违章%' and deal_date= v_date and oper_name=v_OPER_NAME and CITY_NAME=v_CITY_NAME;
+
+                   else
+                     vv_on_user_num:=0;
+                     vv_on_jfuser_num:=0;
+                   end if;
+                     pipe row(UMG_STAT_OPERDAYNEW_P_RECORD (v_ZTYH_NUM,
+                                                     v_ZTYHDY_NUM,
+                                                     v_deal_date,
+                                                     vv_on_jfuser_num,
+                                                     v_OPER_NAME,
+                                                     --v_ON_USER_NUM,
+                                                     vv_on_user_num,
+                                                     v_JF_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     v_DRTD_NUM,
+                                                     v_DYTD_NUM,
+                                                     v_CITY_NAME,
+                                                     ''));
+
+
+
+                 end loop;
+                 close tmp_cursor;
+
+        end if;
+
+
+
+    return;
+  end;
+
+
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                         按省份,地市统计，程序调用最终存储过程                                                   --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatProvinceInfo_1(i_STARTROW integer,                                           --查询起始行号
+                           i_MAXROW integer,                                                --最多返回记录行数
+                           i_BEGINDATE   varchar2,                                          --日志起始日期条件,格式:yyyy-mm-dd
+                           i_ENDDATE     varchar2,                                          --日志终止日期条件,格式:yyyy-mm-dd
+                           i_PROVINCE       varchar2,                                       --省份编码
+                           i_SERVICENAME    varchar2,                                        --业务名称
+                           i_type           varchar2                                        --统计类型，1--按省份统计，2--按地市统计，3--按省份统计，2--按地市统计
+                           ) return UMG_STAT_OPERDAYNEW_P_TABLE pipelined as
+
+  v_sql_item              varchar2(2000);
+  type v_cursor is ref cursor;
+  tmp_cursor_item  v_cursor;
+
+    --v_DEAL_DATE        VARCHAR2(10);
+    v_PROV_CODE        VARCHAR2(20);
+    v_PROV_NAME        VARCHAR2(20);
+    --v_OPER_CODE        VARCHAR2(2);
+    v_OPER_NAME        VARCHAR2(30);
+    v_ON_USER_NUM      INTEGER;
+    v_on_jfuser_num    INTEGER;
+    v_JF_USER_NUM      INTEGER;
+    v_NEW_USER_NUM     INTEGER;
+    v_TD_USER_NUM      INTEGER;
+    v_MFTD_USER_NUM    INTEGER;
+    v_PX_USER_NUM      INTEGER;
+    vv_on_user_num INTEGER;
+      vv_on_jfuser_num      INTEGER;
+   v_DRTD_NUM   INTEGER;
+   v_DYTD_NUM INTEGER;
+   v_ZTYHDY_NUM INTEGER;
+   v_ZTYH_NUM      INTEGER;
+    v_CITY_NAME        VARCHAR2(20);
+    --v_tmp           INTEGER;
+    v_deal_date VARCHAR2(20);
+  begin
+           v_sql_item:='';
+
+            if i_type='1' then   --统计类型，1--按省份统计
+
+
+                   v_sql_item:='(select rownum as num, t.* from (select * from table(umg_stat_new.StatProvinceInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_PROVINCE ||''','''|| i_SERVICENAME ||''','''|| i_type ||'''))'|| v_sql_item ||') t where rownum<'|| to_char(i_startrow +i_maxrow) ||')';
+
+                   v_sql_item:='select v_deal_date, v_PROV_CODE,v_PROV_NAME,v_oper_code,v_OPER_NAME,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_PX_USER_NUM,v_city_code,v_city_name from '|| v_sql_item || ' where num>='||i_startrow;
+
+                   open tmp_cursor_item for v_sql_item;
+                       loop
+                         fetch tmp_cursor_item into v_ZTYH_NUM, v_PROV_CODE,v_PROV_NAME,v_on_jfuser_num,v_OPER_NAME,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_DRTD_NUM,v_DYTD_NUM, v_ZTYHDY_NUM;
+                         exit when tmp_cursor_item%notfound;
+
+
+                         pipe row(UMG_STAT_OPERDAYNEW_P_RECORD (v_ZTYH_NUM,
+                                                     v_PROV_CODE,
+                                                     v_PROV_NAME,
+                                                     v_on_jfuser_num,
+                                                     v_OPER_NAME,
+                                                     --v_ON_USER_NUM,
+                                                     v_ON_USER_NUM,
+                                                     v_JF_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     v_DRTD_NUM,
+                                                     v_DYTD_NUM,
+                                                     v_ZTYHDY_NUM,
+                                                     ''));
+
+                       end loop;
+                   close tmp_cursor_item;
+           end if;
+           
+ if i_type='3' then   --统计类型，1--按省份统计
+
+
+                   v_sql_item:='(select rownum as num, t.* from (select * from table(umg_stat_new.StatProvinceInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_PROVINCE ||''','''|| i_SERVICENAME ||''','''|| i_type ||'''))'|| v_sql_item ||') t where rownum<'|| to_char(i_startrow +i_maxrow) ||')';
+
+                   v_sql_item:='select v_deal_date, v_PROV_CODE,v_PROV_NAME,v_oper_code,v_OPER_NAME,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_PX_USER_NUM,v_city_code,v_city_name,v_extra_1 from '|| v_sql_item || ' where num>='||i_startrow;
+
+                   open tmp_cursor_item for v_sql_item;
+                       loop
+                         fetch tmp_cursor_item into  v_ZTYH_NUM, v_PROV_CODE,v_PROV_NAME,v_on_jfuser_num,v_OPER_NAME,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_DRTD_NUM,v_DYTD_NUM, v_ZTYHDY_NUM,v_deal_date;
+                         exit when tmp_cursor_item%notfound;
+
+
+                         pipe row(UMG_STAT_OPERDAYNEW_P_RECORD (v_ZTYH_NUM,
+                                                     v_PROV_CODE,
+                                                     v_PROV_NAME,
+                                                     v_on_jfuser_num,
+                                                     v_OPER_NAME,
+                                                     --v_ON_USER_NUM,
+                                                     v_ON_USER_NUM,
+                                                     v_JF_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     v_DRTD_NUM,
+                                                     v_DYTD_NUM,
+                                                     v_ZTYHDY_NUM,
+                                                     v_deal_date));
+
+                       end loop;
+                   close tmp_cursor_item;
+           end if;
+             if i_type='2' then       --统计类型，2--按地市统计
+
+                   v_sql_item:='(select rownum as num, t.* from (select * from table(umg_stat_new.StatProvinceInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_PROVINCE ||''','''|| i_SERVICENAME ||''','''|| i_type ||'''))'|| v_sql_item ||') t where rownum<'|| to_char(i_startrow +i_maxrow) ||')';
+  
+                   v_sql_item:='select v_deal_date, v_PROV_CODE, v_OPER_CODE,v_oper_name,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_PX_USER_NUM,v_city_code,v_city_name  from '|| v_sql_item || ' where num>='||i_startrow;
+
+                   open tmp_cursor_item for v_sql_item;
+                       loop
+                         fetch tmp_cursor_item into v_ZTYH_NUM,v_ZTYHDY_NUM,v_on_jfuser_num,v_OPER_NAME,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_DRTD_NUM,v_DYTD_NUM,v_CITY_NAME;
+                         exit when tmp_cursor_item%notfound;
+
+
+                          pipe row(UMG_STAT_OPERDAYNEW_P_RECORD (v_ZTYH_NUM,
+                                                     v_ZTYHDY_NUM,
+                                                     '',
+                                                     v_on_jfuser_num,
+                                                     v_OPER_NAME,
+                                                     --v_ON_USER_NUM,
+                                                     v_on_user_num,
+                                                     v_JF_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     v_DRTD_NUM,
+                                                     v_DYTD_NUM,
+                                                     v_CITY_NAME,
+                                                     ''));
+
+                       end loop;
+                   close tmp_cursor_item;
+
+            end if;
+ 
+  if i_type='4' then       --统计类型，4--按地市时间统计
+
+                   v_sql_item:='(select rownum as num, t.* from (select * from table(umg_stat_new.StatProvinceInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_PROVINCE ||''','''|| i_SERVICENAME ||''','''|| i_type ||'''))'|| v_sql_item ||') t where rownum<'|| to_char(i_startrow +i_maxrow) ||')';
+  
+                   v_sql_item:='select v_deal_date,v_prov_code,v_prov_name, v_OPER_CODE,v_oper_name,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_PX_USER_NUM,v_city_code,v_city_name   from '|| v_sql_item || ' where num>='||i_startrow;
+
+                   open tmp_cursor_item for v_sql_item;
+                       loop
+                         fetch tmp_cursor_item into v_ZTYH_NUM,v_ZTYHDY_NUM,v_deal_date,v_on_jfuser_num,v_OPER_NAME,v_ON_USER_NUM,v_JF_USER_NUM,v_NEW_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM,v_DRTD_NUM,v_DYTD_NUM,v_CITY_NAME;
+                         exit when tmp_cursor_item%notfound;
+
+
+                          pipe row(UMG_STAT_OPERDAYNEW_P_RECORD (v_ZTYH_NUM,
+                                                     v_ZTYHDY_NUM,
+                                                     v_deal_date,
+                                                     v_on_jfuser_num,
+                                                     v_OPER_NAME,
+                                                     --v_ON_USER_NUM,
+                                                     v_on_user_num,
+                                                     v_JF_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     v_DRTD_NUM,
+                                                     v_DYTD_NUM,
+                                                     v_CITY_NAME,
+                                                     ''));
+
+                       end loop;
+                   close tmp_cursor_item;
+
+            end if;
+    return;
+  end;
+
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                  按省份,地市统计的数据总数，程序调用最终存储过程                                                --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatProvinceInfo_1_Count(i_BEGINDATE   varchar2,                                          --日志起始日期条件,格式:yyyy-mm-dd
+                                    i_ENDDATE     varchar2,                                          --日志终止日期条件,格式:yyyy-mm-dd
+                                    i_PROVINCE       varchar2,                                       --省份编码
+                                    i_SERVICENAME    varchar2,                                        --业务名称
+                                    i_type           varchar2                                        --统计类型，1--按省份统计，2--按地市统计
+                                   ) return integer as
+
+  v_SQL varchar2(32767);
+  v_Count integer;
+
+  begin
+
+           v_SQL:='select count(*) from (select * from table(umg_stat_new.StatProvinceInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_PROVINCE ||''','''|| i_SERVICENAME ||''','''|| i_type ||''')))';
+
+          execute immediate v_SQL into v_Count;
+
+     return v_Count;
+  exception
+    when others then return SQLCODE;
+  end;
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                           按渠道统计，程序调用最终存储过程                                      --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatChannelInfo(i_BEGINDATE      varchar2,                                          --日志日期条件,格式:yyyy-mm-dd
+                           i_SERVICENAME    varchar2,                                          --业务名称
+                           i_CHANAME        varchar2                                           --渠道名称
+                       ) return UMG_STAT_CHENNAL_TABLE pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+    v_DEAL_DATE        VARCHAR2(10);
+  --v_PROV_CODE        VARCHAR2(20);
+  --v_PROV_NAME        VARCHAR2(20);
+  --v_OPER_CODE        VARCHAR2(2);
+  v_OPER_NAME        VARCHAR2(30);
+  --v_CHN_CODE         VARCHAR2(2);
+  v_CHN_NAME         VARCHAR2(30);
+  v_NEW_USER_NUM     INTEGER;
+  v_JF_USER_NUM      INTEGER;
+  v_TD_USER_NUM      INTEGER;
+  v_MFTD_USER_NUM    INTEGER;
+  --v_CITY_CODE        VARCHAR2(20);
+  --v_CITY_NAME        VARCHAR2(20);
+
+  begin
+         v_SQL :='and a.deal_date=TO_CHAR('''|| i_BEGINDATE ||''')';
+
+        if i_SERVICENAME ='所有业务' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(a.oper_name,''' || i_SERVICENAME || ''')>0';
+
+        end if;
+
+        if i_CHANAME ='所有渠道' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(a.CHN_NAME,''' || i_CHANAME || ''')>0';
+
+        end if;
+
+         v_SQL := 'select a.deal_date,a.oper_name,a.CHN_NAME,sum(NEW_USER_NUM),sum(JF_USER_NUM),sum(TD_USER_NUM),sum(JDJT_USER_NUM) from tb_rpt_chn_day a where 1=1 ' || v_SQL || '';
+
+         v_SQL := v_SQL||' group by a.deal_date,a.oper_name,a.CHN_NAME';
+
+          open tmp_cursor for v_SQL;
+          loop
+           fetch tmp_cursor into v_DEAL_DATE,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM;
+           exit when tmp_cursor%notfound;
+
+
+               pipe row(UMG_STAT_CHENNAL_RECORD (v_DEAL_DATE,
+                                               '',
+                                               '',
+                                               '',
+                                               v_OPER_NAME,
+                                               '',
+                                               v_CHN_NAME,
+                                               v_NEW_USER_NUM,
+                                               v_JF_USER_NUM,
+                                               v_TD_USER_NUM,
+                                               v_MFTD_USER_NUM,
+                                               '',
+                                               ''));
+           end loop;
+           close tmp_cursor;
+
+
+
+    return;
+  end;
+
+
+   ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                彩票业务统计，程序调用最终存储过程                                               --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatCaiPiaoInfo(i_BEGINDATE   varchar2,                                          --日志日期条件,格式:yyyy-mm-dd
+                           i_PROVINCE       varchar2,                                       --省份编码
+                           i_SERVICENAME    varchar2,                                       --业务名称
+                           i_type           varchar2                                        --统计类型，1--按省份统计，2--按地市统计
+                           ) return UMG_STAT_CAIPIAO_TABLE pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+    v_DEAL_DATE        VARCHAR2(10);
+  v_PROV_CODE        VARCHAR2(20);
+  v_PROV_NAME        VARCHAR2(20);
+ -- v_OPER_CODE        VARCHAR2(2);
+  v_OPER_NAME        VARCHAR2(30);
+  --v_ON_USER_NUM      INTEGER;
+  v_NEW_USER_NUM     INTEGER;
+  v_TD_USER_NUM      INTEGER;
+  v_PX_USER_NUM      INTEGER;
+  v_JDJT_USER_NUM    INTEGER;
+  v_SUC_USER_NUM     INTEGER;
+  v_SUC_JF_TIMES     INTEGER;
+  --v_CITY_CODE        VARCHAR2(20);
+  v_CITY_NAME        VARCHAR2(20);
+   v_date            VARCHAR2(30);
+    v_tmp             integer;
+    vv_on_user_num    INTEGER;
+
+  begin
+         v_SQL :='and a.deal_date=TO_CHAR('''|| i_BEGINDATE ||''')';
+
+        if i_SERVICENAME ='所有业务' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(a.oper_name,''' || i_SERVICENAME || ''')>0';
+
+        end if;
+
+       if i_PROVINCE <> '999' then
+           v_SQL := v_SQL || ' and a.PROV_CODE=''' || i_PROVINCE || '''';
+        end if;
+
+        if i_type='1' then   --统计类型，1--按省份统计
+               v_SQL := 'select  a.PROV_CODE,a.PROV_NAME,a.oper_name,sum(NEW_USER_NUM),sum(TD_USER_NUM),sum(PX_USER_NUM),sum(JDJT_USER_NUM),sum(SUC_USER_NUM),sum(SUC_JF_TIMES) from tb_rpt_cpjlb_day a where 1=1 ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by a.PROV_CODE,a.PROV_NAME,a.oper_name';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into   v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_NEW_USER_NUM,v_TD_USER_NUM,v_PX_USER_NUM,v_JDJT_USER_NUM,v_SUC_USER_NUM,v_SUC_JF_TIMES;
+                 exit when tmp_cursor%notfound;
+
+                 --下面计算留存用户数，留存用户数取每个月1号的数据；
+                 --v_date:='';
+                 --select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+                 v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+                 select count(*) into v_tmp from tb_rpt_cpjlb_day where deal_date=v_date and oper_name=v_OPER_NAME and PROV_CODE=v_PROV_CODE;
+                 if v_tmp <> 0 then
+                   select sum(on_user_num) into vv_on_user_num from tb_rpt_cpjlb_day where deal_date= v_date and oper_name=v_OPER_NAME  and PROV_CODE=v_PROV_CODE;
+                 else
+                   vv_on_user_num:=0;
+
+                 end if;
+
+                     pipe row(UMG_STAT_CAIPIAO_RECORD ('',
+                                                     v_PROV_CODE,
+                                                     v_PROV_NAME,
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     vv_on_user_num,
+                                                     --v_ON_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_PX_USER_NUM,
+                                                     v_JDJT_USER_NUM,
+                                                     v_SUC_USER_NUM,
+                                                     v_SUC_JF_TIMES,
+                                                     '',
+                                                     ''));
+                 end loop;
+                 close tmp_cursor;
+        else  --统计类型，2--按地市统计
+              v_SQL := 'select  a.CITY_NAME,a.oper_name,sum(NEW_USER_NUM),sum(TD_USER_NUM),sum(PX_USER_NUM),sum(JDJT_USER_NUM),sum(SUC_USER_NUM),sum(SUC_JF_TIMES) from tb_rpt_cpjlb_day a where 1=1 ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by  a.CITY_NAME,a.oper_name';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_DEAL_DATE,v_CITY_NAME,v_OPER_NAME,v_NEW_USER_NUM,v_TD_USER_NUM,v_PX_USER_NUM,v_JDJT_USER_NUM,v_SUC_USER_NUM,v_SUC_JF_TIMES;
+                 exit when tmp_cursor%notfound;
+
+                 --下面计算留存用户数，留存用户数取每个月1号的数据；
+                 --v_date:='';
+                 --select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+                 v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+                 select count(*) into v_tmp from tb_rpt_cpjlb_day where deal_date=v_date and oper_name=v_OPER_NAME and CITY_NAME=v_CITY_NAME;
+                 if v_tmp <> 0 then
+                   select sum(on_user_num) into vv_on_user_num from tb_rpt_cpjlb_day where deal_date= v_date and oper_name=v_OPER_NAME  and CITY_NAME=v_CITY_NAME;
+                 else
+                   vv_on_user_num:=0;
+
+                 end if;
+
+
+                      pipe row(UMG_STAT_CAIPIAO_RECORD ('',
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     vv_on_user_num,
+                                                     --v_ON_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_PX_USER_NUM,
+                                                     v_JDJT_USER_NUM,
+                                                     v_SUC_USER_NUM,
+                                                     v_SUC_JF_TIMES,
+                                                     '',
+                                                     v_CITY_NAME));
+                 end loop;
+                 close tmp_cursor;
+
+
+        end if;
+
+
+
+    return;
+  end;
+
+
+  --------------------------------test----------------------------------------------------------------------------------------------------
+ --------------------------------test----------------------------------------------------------------------------------------------------
+  --------------------------------test----------------------------------------------------------------------------------------------------
+   --------------------------------test----------------------------------------------------------------------------------------------------
+    --------------------------------test----------------------------------------------------------------------------------------------------
+     --------------------------------test----------------------------------------------------------------------------------------------------
+
+   ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                彩票业务统计，程序调用最终存储过程                                               --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatCaiPiaoInfoNew(i_BEGINDATE   varchar2,                                          --日志日期条件,格式:yyyy-mm-dd
+  i_ENDDATE varchar2,
+                           i_PROVINCE       varchar2,                                       --省份编码
+                           i_SERVICENAME    varchar2,                                       --业务名称
+                           i_type           varchar2                                        --统计类型，1--按省份统计，2--按地市统计
+                           ) return UMG_STAT_CAIPIAO_TABLE pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+    --v_DEAL_DATE        VARCHAR2(10);
+  v_PROV_CODE        VARCHAR2(20);
+  v_PROV_NAME        VARCHAR2(20);
+ -- v_OPER_CODE        VARCHAR2(2);
+  v_OPER_NAME        VARCHAR2(30);
+  --v_ON_USER_NUM      INTEGER;
+  v_NEW_USER_NUM     INTEGER;
+  v_TD_USER_NUM      INTEGER;
+  v_PX_USER_NUM      INTEGER;
+  v_JDJT_USER_NUM    INTEGER;
+  v_SUC_USER_NUM     INTEGER;
+  v_SUC_JF_TIMES     INTEGER;
+  --v_CITY_CODE        VARCHAR2(20);
+  v_CITY_NAME        VARCHAR2(20);
+  v_date            VARCHAR2(30);
+    v_tmp             integer;
+    vv_on_user_num    INTEGER;
+
+
+  begin
+          v_SQL :='and a.deal_date>=TO_CHAR('''|| i_BEGINDATE ||''') and a.deal_date<=TO_CHAR('''|| i_ENDDATE ||''')';
+
+        if i_SERVICENAME ='所有业务' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(a.oper_name,''' || i_SERVICENAME || ''')>0';
+
+        end if;
+
+       if i_PROVINCE <> '999' then
+           v_SQL := v_SQL || ' and a.PROV_CODE=''' || i_PROVINCE || '''';
+        end if;
+
+        if i_type='1' then   --统计类型，1--按省份统计
+               v_SQL := 'select a.PROV_CODE,a.PROV_NAME,a.oper_name,sum(NEW_USER_NUM),sum(TD_USER_NUM),sum(PX_USER_NUM),sum(JDJT_USER_NUM),sum(SUC_USER_NUM),sum(SUC_JF_TIMES) from tb_rpt_cpjlb_day a where 1=1 ' || v_SQL || '';
+
+               v_SQL :=  v_SQL||' group by a.PROV_CODE,a.PROV_NAME,a.oper_name';
+
+
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_NEW_USER_NUM,v_TD_USER_NUM,v_PX_USER_NUM,v_JDJT_USER_NUM,v_SUC_USER_NUM,v_SUC_JF_TIMES;
+                 exit when tmp_cursor%notfound;
+                       --下面计算留存用户数，留存用户数取每个月1号的数据；
+                 --v_date:='';
+                 --select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+                 v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+                 select count(*) into v_tmp from tb_rpt_cpjlb_day where deal_date=v_date and oper_name=v_OPER_NAME and PROV_CODE=v_PROV_CODE;
+                 if v_tmp <> 0 then
+                   select sum(on_user_num) into vv_on_user_num from tb_rpt_cpjlb_day where deal_date= v_date and oper_name=v_OPER_NAME  and PROV_CODE=v_PROV_CODE;
+                 else
+                   vv_on_user_num:=0;
+
+                 end if;
+
+                     pipe row(UMG_STAT_CAIPIAO_RECORD ('',
+                                                     v_PROV_CODE,
+                                                     v_PROV_NAME,
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     vv_on_user_num,
+                                                     --v_ON_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_PX_USER_NUM,
+                                                     v_JDJT_USER_NUM,
+                                                     v_SUC_USER_NUM,
+                                                     v_SUC_JF_TIMES,
+                                                     '',
+                                                     ''));
+                 end loop;
+                 close tmp_cursor;
+        else  --统计类型，2--按地市统计
+              v_SQL := 'select a.CITY_NAME,a.oper_name,sum(NEW_USER_NUM),sum(TD_USER_NUM),sum(PX_USER_NUM),sum(JDJT_USER_NUM),sum(SUC_USER_NUM),sum(SUC_JF_TIMES) from tb_rpt_cpjlb_day a where 1=1 ' || v_SQL || '';
+
+              -- v_SQL := v_SQL||' group by a.deal_date,a.CITY_NAME,a.oper_name';
+               v_SQL := v_SQL||' group by a.CITY_NAME,a.oper_name';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_CITY_NAME,v_OPER_NAME,v_NEW_USER_NUM,v_TD_USER_NUM,v_PX_USER_NUM,v_JDJT_USER_NUM,v_SUC_USER_NUM,v_SUC_JF_TIMES;
+                 exit when tmp_cursor%notfound;
+                      --下面计算留存用户数，留存用户数取每个月1号的数据；
+                 --v_date:='';
+                 --select to_char(sysdate,'YYYY-MM')||'-01' into v_date from dual;
+                 v_date:=SUBSTR(i_BEGINDATE, 1, 7) || '-01';
+                 select count(*) into v_tmp from tb_rpt_cpjlb_day where deal_date=v_date and oper_name=v_OPER_NAME and CITY_NAME=v_CITY_NAME;
+                 if v_tmp <> 0 then
+                   select sum(on_user_num) into vv_on_user_num from tb_rpt_cpjlb_day where deal_date= v_date and oper_name=v_OPER_NAME  and CITY_NAME=v_CITY_NAME;
+                 else
+                   vv_on_user_num:=0;
+
+                 end if;
+
+                      pipe row(UMG_STAT_CAIPIAO_RECORD ('',
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     vv_on_user_num,
+                                                     --v_ON_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_PX_USER_NUM,
+                                                     v_JDJT_USER_NUM,
+                                                     v_SUC_USER_NUM,
+                                                     v_SUC_JF_TIMES,
+                                                     '',
+                                                     v_CITY_NAME));
+                 end loop;
+                 close tmp_cursor;
+
+
+        end if;
+
+
+
+    return;
+  end;
+
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                 按渠道统计自定义统计，程序调用最终存储过程                                      --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatChannelDefineInfo(i_BEGINDATE      varchar2,                                          --日志日期条件,格式:yyyy-mm-dd
+                                 i_ENDDATE     varchar2,                                             --日志终止日期条件,格式:yyyy-mm-dd
+                                 i_SERVICENAME    varchar2,                                          --业务名称
+                                 i_CHANAME        varchar2,                                           --渠道名称
+                                 i_PROVINCE       varchar2,                                          --省份编码
+                                 i_type           varchar2,                                           --统计类型，1--按省份统计，2--按地市统计
+                                 i_chntype        varchar2                                            --查询类型 1 --订购渠到  2--退订渠到
+                       ) return UMG_STAT_CHENNAL_TABLE pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+    --v_DEAL_DATE        VARCHAR2(10);
+   v_PROV_CODE        VARCHAR2(20);
+   v_PROV_NAME        VARCHAR2(20);
+  --v_OPER_CODE        VARCHAR2(2);
+  v_OPER_NAME        VARCHAR2(30);
+  --v_CHN_CODE         VARCHAR2(2);
+  v_CHN_NAME         VARCHAR2(30);
+  v_NEW_USER_NUM     INTEGER;
+  v_JF_USER_NUM      INTEGER;
+  v_TD_USER_NUM      INTEGER;
+  v_MFTD_USER_NUM    INTEGER;
+  --v_CITY_CODE        VARCHAR2(20);
+  v_CITY_NAME        VARCHAR2(20);
+
+  begin
+        v_SQL :='and a.deal_date>=TO_CHAR('''|| i_BEGINDATE ||''') and a.deal_date<=TO_CHAR('''|| i_ENDDATE ||''')';
+
+        if i_SERVICENAME ='所有业务' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(a.oper_name,''' || i_SERVICENAME || ''')>0';
+
+        end if;
+
+        if i_CHANAME ='所有渠道' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(a.CHN_NAME,''' || i_CHANAME || ''')>0';
+
+        end if;
+
+        if i_PROVINCE <> '999' then
+           v_SQL := v_SQL || ' and a.PROV_CODE=''' || i_PROVINCE || '''';
+        end if;
+
+  if  i_chntype = '1' then  --订购渠到
+        if i_type='1' then   --统计类型，1--按省份统计
+
+         v_SQL := 'select a.PROV_CODE,a.PROV_NAME,a.oper_name,a.CHN_NAME,sum(NEW_USER_NUM),sum(JF_USER_NUM),sum(TD_USER_NUM),sum(JDJT_USER_NUM) from tb_rpt_chn_day a where 1=1 ' || v_SQL || '';
+
+         v_SQL := v_SQL||' group by a.PROV_CODE,a.PROV_NAME,a.oper_name,a.CHN_NAME';
+
+          open tmp_cursor for v_SQL;
+          loop
+           fetch tmp_cursor into v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM;
+           exit when tmp_cursor%notfound;
+
+
+               pipe row(UMG_STAT_CHENNAL_RECORD ('',
+                                               v_PROV_CODE,
+                                               v_PROV_NAME,
+                                               '',
+                                               v_OPER_NAME,
+                                               '',
+                                               v_CHN_NAME,
+                                               v_NEW_USER_NUM,
+                                               v_JF_USER_NUM,
+                                               v_TD_USER_NUM,
+                                               v_MFTD_USER_NUM,
+                                               '',
+                                               ''));
+           end loop;
+           close tmp_cursor;
+          else  --统计类型，2--按地市统计
+              v_SQL := 'select a.CITY_NAME,a.oper_name,a.CHN_NAME,sum(NEW_USER_NUM),sum(JF_USER_NUM),sum(TD_USER_NUM),sum(JDJT_USER_NUM) from tb_rpt_chn_day a where 1=1 ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by a.CITY_NAME,a.oper_name,a.CHN_NAME';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_CITY_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM;
+                 exit when tmp_cursor%notfound;
+
+
+                     pipe row(UMG_STAT_CHENNAL_RECORD ('',
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     '',
+                                                     v_CHN_NAME,
+                                                     v_NEW_USER_NUM,
+                                                     v_JF_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     '',
+                                                     v_CITY_NAME));
+                 end loop;
+                 close tmp_cursor;
+
+
+        end if;
+
+      else --退订渠到
+      if i_type='1' then   --统计类型，1--按省份统计
+
+         v_SQL := 'select a.PROV_CODE,a.PROV_NAME,a.oper_name,a.CHN_NAME,sum(td_chn_num ) from tb_rpt_chn_day a , (select    channel_code,opt_type from opt_channel where    tdchn_flag =1  group by  channel_code, opt_type ) c where  a.chn_code=c.channel_code  and a.oper_code=c.opt_type   ' || v_SQL || '';
+
+         v_SQL := v_SQL||' group by a.PROV_CODE,a.PROV_NAME,a.oper_name,a.CHN_NAME';
+
+          open tmp_cursor for v_SQL;
+          loop
+           fetch tmp_cursor into v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM ;
+           exit when tmp_cursor%notfound;
+
+
+               pipe row(UMG_STAT_CHENNAL_RECORD ('',
+                                               v_PROV_CODE,
+                                               v_PROV_NAME,
+                                               '',
+                                               v_OPER_NAME,
+                                               '',
+                                               v_CHN_NAME,
+                                               v_NEW_USER_NUM,
+                                              '',
+                                               '',
+                                               '',
+                                               '',
+                                                v_CITY_NAME ));
+           end loop;
+           close tmp_cursor;
+          else  --统计类型，2--按地市统计
+              v_SQL := 'select a.CITY_NAME,a.oper_name,a.CHN_NAME,sum(td_chn_num )  from tb_rpt_chn_day a ,(select    channel_code,opt_type from opt_channel where    tdchn_flag =1  group by  channel_code, opt_type )   c where  t.chn_code=c.channel_code  and a.oper_code=c.opt_type   ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by a.CITY_NAME,a.oper_name,a.CHN_NAME';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_CITY_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM ;
+                 exit when tmp_cursor%notfound;
+
+
+                     pipe row(UMG_STAT_CHENNAL_RECORD ('',
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     '',
+                                                     v_CHN_NAME,
+                                                     v_NEW_USER_NUM,
+                                                     '',
+                                                      '',
+                                                      '',
+                                                     '',
+                                                     v_CITY_NAME));
+                 end loop;
+                 close tmp_cursor;
+
+
+        end if;
+
+
+      end if;
+
+
+    return;
+  end;
+
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                         按渠道统计自定义统计，程序调用最终存储过程                                              --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatChannelDefineInfo_1(i_STARTROW integer,                                           --查询起始行号
+                                   i_MAXROW integer,                                             --最多返回记录行数
+                                   i_BEGINDATE      varchar2,                                    --日志日期条件,格式:yyyy-mm-dd
+                                   i_ENDDATE        varchar2,                                    --日志终止日期条件,格式:yyyy-mm-dd
+                                   i_SERVICENAME    varchar2,                                    --业务名称
+                                   i_CHANAME        varchar2,                                    --渠道名称
+                                   i_PROVINCE       varchar2,                                    --省份编码
+                                   i_type           varchar2,                                     --统计类型，1--按省份统计，2--按地市统计
+                                   i_chntype        varchar2                                    ---渠道类型 1--订购渠到 2 --退订渠道
+                           ) return UMG_STAT_CHENNAL_TABLE pipelined as
+
+     v_sql_item              varchar2(2000);
+  type v_cursor is ref cursor;
+  tmp_cursor_item  v_cursor;
+    --v_DEAL_DATE        VARCHAR2(10);
+   v_PROV_CODE        VARCHAR2(20);
+   v_PROV_NAME        VARCHAR2(20);
+  --v_OPER_CODE        VARCHAR2(2);
+  v_OPER_NAME        VARCHAR2(30);
+  --v_CHN_CODE         VARCHAR2(2);
+  v_CHN_NAME         VARCHAR2(30);
+  v_NEW_USER_NUM     INTEGER;
+  v_JF_USER_NUM      INTEGER;
+  v_TD_USER_NUM      INTEGER;
+  v_MFTD_USER_NUM    INTEGER;
+  --v_CITY_CODE        VARCHAR2(20);
+  v_CITY_NAME        VARCHAR2(20);
+
+  begin
+           v_sql_item:='';
+           if i_chntype='1' then --订购渠到
+              if i_type='1' then   --统计类型，1--按省份统计
+
+
+                   v_sql_item:='(select rownum as num, t.* from (select * from table(umg_stat_new.StatChannelDefineInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_SERVICENAME ||''','''|| i_CHANAME ||''','''|| i_PROVINCE ||''','''|| i_type ||''','''||i_chntype||'''))'|| v_sql_item ||') t where rownum<'|| to_char(i_startrow +i_maxrow) ||')';
+
+                   v_sql_item:='select v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM from '|| v_sql_item || ' where num>='||i_startrow;
+
+                   open tmp_cursor_item for v_sql_item;
+                       loop
+                         fetch tmp_cursor_item into v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM;
+                         exit when tmp_cursor_item%notfound;
+
+
+                         pipe row(UMG_STAT_CHENNAL_RECORD ('',
+                                               v_PROV_CODE,
+                                               v_PROV_NAME,
+                                               '',
+                                               v_OPER_NAME,
+                                               '',
+                                               v_CHN_NAME,
+                                               v_NEW_USER_NUM,
+                                               v_JF_USER_NUM,
+                                               v_TD_USER_NUM,
+                                               v_MFTD_USER_NUM,
+                                               '',
+                                               ''));
+
+                       end loop;
+                   close tmp_cursor_item;
+
+            else    --统计类型，2--按地市统计
+
+                   v_sql_item:='(select rownum as num, t.* from (select * from table(umg_stat_new.StatChannelDefineInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_SERVICENAME ||''','''|| i_CHANAME ||''','''|| i_PROVINCE ||''','''|| i_type ||''','''||i_chntype||'''))'|| v_sql_item ||') t where rownum<'|| to_char(i_startrow +i_maxrow) ||')';
+
+                   v_sql_item:='select v_CITY_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM from '|| v_sql_item || ' where num>='||i_startrow;
+
+                   open tmp_cursor_item for v_sql_item;
+                       loop
+                         fetch tmp_cursor_item into  v_CITY_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM;
+                         exit when tmp_cursor_item%notfound;
+
+
+                          pipe row(UMG_STAT_CHENNAL_RECORD ('',
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     '',
+                                                     v_CHN_NAME,
+                                                     v_NEW_USER_NUM,
+                                                     v_JF_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     '',
+                                                     v_CITY_NAME));
+
+                       end loop;
+                   close tmp_cursor_item;
+
+            end if;
+           else  --退定渠道
+            if i_type='1' then   --统计类型，1--按省份统计
+
+
+                   v_sql_item:='(select rownum as num, t.* from (select * from table(umg_stat_new.StatChannelDefineInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_SERVICENAME ||''','''|| i_CHANAME ||''','''|| i_PROVINCE ||''','''|| i_type ||''','''||i_chntype||'''))'|| v_sql_item ||') t where rownum<'|| to_char(i_startrow +i_maxrow) ||')';
+
+                   v_sql_item:='select v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM from '|| v_sql_item || ' where num>='||i_startrow;
+
+                   open tmp_cursor_item for v_sql_item;
+                       loop
+                         fetch tmp_cursor_item into v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM;
+                         exit when tmp_cursor_item%notfound;
+
+
+                         pipe row(UMG_STAT_CHENNAL_RECORD ('',
+                                               v_PROV_CODE,
+                                               v_PROV_NAME,
+                                               '',
+                                               v_OPER_NAME,
+                                               '',
+                                               v_CHN_NAME,
+                                               v_NEW_USER_NUM,
+                                               v_JF_USER_NUM,
+                                               v_TD_USER_NUM,
+                                               v_MFTD_USER_NUM,
+                                               '',
+                                               ''));
+
+                       end loop;
+                   close tmp_cursor_item;
+
+            else    --统计类型，2--按地市统计
+
+                   v_sql_item:='(select rownum as num, t.* from (select * from table(umg_stat_new.StatChannelDefineInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_SERVICENAME ||''','''|| i_CHANAME ||''','''|| i_PROVINCE ||''','''|| i_type ||''','''||i_chntype||'''))'|| v_sql_item ||') t where rownum<'|| to_char(i_startrow +i_maxrow) ||')';
+
+                   v_sql_item:='select v_CITY_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM from '|| v_sql_item || ' where num>='||i_startrow;
+
+                   open tmp_cursor_item for v_sql_item;
+                       loop
+                         fetch tmp_cursor_item into  v_CITY_NAME,v_OPER_NAME,v_CHN_NAME,v_NEW_USER_NUM,v_JF_USER_NUM,v_TD_USER_NUM,v_MFTD_USER_NUM;
+                         exit when tmp_cursor_item%notfound;
+
+
+                          pipe row(UMG_STAT_CHENNAL_RECORD ('',
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     '',
+                                                     v_CHN_NAME,
+                                                     v_NEW_USER_NUM,
+                                                     v_JF_USER_NUM,
+                                                     v_TD_USER_NUM,
+                                                     v_MFTD_USER_NUM,
+                                                     '',
+                                                     v_CITY_NAME));
+
+                       end loop;
+                   close tmp_cursor_item;
+
+            end if;
+
+           end if;
+
+
+    return;
+  end;
+
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                  按渠道统计自定义统计的数据总数，程序调用最终存储过程                                           --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatChannelDefineInfo_1_Count(i_BEGINDATE      varchar2,                              --日志日期条件,格式:yyyy-mm-dd
+                                   i_ENDDATE        varchar2,                                    --日志终止日期条件,格式:yyyy-mm-dd
+                                   i_SERVICENAME    varchar2,                                    --业务名称
+                                   i_CHANAME        varchar2,                                    --渠道名称
+                                   i_PROVINCE       varchar2,                                    --省份编码
+                                   i_type           varchar2,                                     --统计类型，1--按省份统计，2--按地市统计
+                                   i_chntype        varchar2                                  ---1--订购渠到 2--退订渠到
+                                   ) return integer as
+
+  v_SQL varchar2(32767);
+  v_Count integer;
+
+  begin
+
+
+          v_SQL:='select count(*) from (select * from table(umg_stat_new.StatChannelDefineInfo('''|| i_BEGINDATE ||''','''|| i_ENDDATE ||''','''|| i_SERVICENAME ||''','''|| i_CHANAME ||''','''|| i_PROVINCE ||''','''|| i_type ||''','''||i_chntype||''')))';
+          execute immediate v_SQL into v_Count;
+
+     return v_Count;
+  exception
+    when others then return SQLCODE;
+  end;
+
+ ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                 祝福我帮您日统计表，临时存储过程       
+  
+                                 -- 103	手机医疗	名家专科彩点	10411012	1258192	1	801174
+                                 --104	手机医疗	患者关怀彩点	10411013	1258193	2	801174
+                                  --106	手机医疗	名家专科短点	10201070	UMGMJZKDD	2	901808
+                                  --107	手机医疗	患者关怀短点	10201071	UMGHZGHDD	2	901808
+                                  --105	手机商界	商务专刊	10411014	1258195	2	801174
+                                  --108	手机商界	商情慧眼	10201072	UMGSQHYDB	2	901808
+                                  --109	手机商界	商信服务	10201073	UMGXXFWDB	5	901808
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatZhuFuDefineInfo(i_BEGINDATE      varchar2,                                          --日志日期条件,格式:yyyy-mm-dd
+                                 i_ENDDATE     varchar2,                                             --日志终止日期条件,格式:yyyy-mm-dd
+                                 i_PROVINCE       varchar2,                                          --省份编码
+                                 i_opttype  varchar2,                                               ---业务类型  10411012--医疗-名家专科彩点1元 10411013--医疗-患者关怀彩点2元 10201070--医疗-名家专科短点2元	10201071--医疗-患者关怀短点2元  10411014--商界-商务专刊2元 	10201072--商界-商情慧眼2元	 10201073--商界-商信服务5元
+                                 i_type           varchar2                                         --统计类型，1--按省份统计，2--按地市统计
+
+                       ) return UMG_STAT_CHENNAL_TABLE pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+    --v_DEAL_DATE        VARCHAR2(10);
+   v_PROV_CODE        VARCHAR2(20);
+   v_PROV_NAME        VARCHAR2(20);
+   v_OPER_CODE        VARCHAR2(2);
+    v_opt_type       VARCHAR2(30);
+  --v_CHN_CODE         VARCHAR2(2);
+   v_CHN_NAME         VARCHAR2(30);
+  v_NEW_USER_NUM     INTEGER;
+  v_JF_USER_NUM      INTEGER;
+   v_TD_USER_NUM      INTEGER;
+  --v_MFTD_USER_NUM    INTEGER;
+  --v_CITY_CODE        VARCHAR2(20);
+  v_CITY_NAME        VARCHAR2(20);
+ 
+
+  begin
+  
+                v_SQL :='  and  substr(a.dealtime,1,8)>=TO_CHAR('''|| i_BEGINDATE ||''') and substr(a.dealtime,1,8)<=TO_CHAR('''|| i_ENDDATE ||''')';
+
+        if i_opttype ='所有业务' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+           v_SQL :='  and  substr(a.dealtime,1,8)>=TO_CHAR('''|| i_BEGINDATE ||''') and substr(a.dealtime,1,8)<=TO_CHAR('''|| i_ENDDATE ||''')';
+
+
+          v_SQL := v_SQL || ' and instr(b.oper_name_real,''' || i_opttype || ''')>0';
+
+        end if;
+
+       if i_PROVINCE <> '999' then
+           v_SQL := v_SQL || ' and m.PROVINCENO=''' || i_PROVINCE || '''';
+        end if;
+   
+     
+        if i_type='1' then   --统计类型，1--按省份统计
+        v_SQL :=  'select   a.serviceid,m.provinceno,m.province, b.oper_name_real,b.fee,count( a.receiver) usernum,count(case when errordetail  in (to_char(0),to_char(1000)) then a.receiver end) jfusr,count(case when errordetail  in (to_char(0),to_char(1000)) then a.receiver end)*b.fee 
+                  from s200808_temp a, tb_theory_income_base_dianbo b ,mobilenodist m  where  substr(a.receiver,1,7)=m.beginno and a.serviceid=b.appcode ' || v_SQL || '';
+        v_SQL := v_SQL || ' group by a.serviceid,m.provinceno,m.province,b.oper_name_real,b.fee ';
+         /*v_SQL := 'select a.opt_type,a.PROV_CODE,a.PROVINCE,sum(JF_USER_NUM),sum(SUC_JF_TIMES) from tb_rpt_zfwbn_day a where 1=1 ' || v_SQL || '';
+
+         v_SQL := v_SQL||' group by a.PROV_CODE,a.PROVINCE ,a.opt_type';*/
+
+          open tmp_cursor for v_SQL;
+          loop
+           fetch tmp_cursor into v_opt_type,v_PROV_CODE,v_PROV_NAME,v_CHN_NAME,v_OPER_CODE,v_TD_USER_NUM,v_NEW_USER_NUM,v_JF_USER_NUM;
+           exit when tmp_cursor%notfound;
+
+
+               pipe row(UMG_STAT_CHENNAL_RECORD (v_opt_type,
+                                               v_PROV_CODE,
+                                               v_PROV_NAME,
+                                               '',
+                                               '',
+                                               '',
+                                               v_CHN_NAME,
+                                               v_TD_USER_NUM,
+                                               v_NEW_USER_NUM,
+                                               v_JF_USER_NUM,
+                                               '',
+                                              v_OPER_CODE,
+                                               ''));
+           end loop;
+           close tmp_cursor;
+          else  --统计类型，2--按地市统计
+           v_SQL :=  'select   a.serviceid,m.city, b.oper_name_real,b.fee,count( a.receiver) usernum,count(case when errordetail  in (to_char(0),to_char(1000)) then a.receiver end) jfusr,count(case when errordetail  in (to_char(0),to_char(1000)) then a.receiver end)*b.fee 
+                  from s200808_temp a, tb_theory_income_base_dianbo b ,mobilenodist m  where  substr(a.receiver,1,7)=m.beginno and a.serviceid=b.appcode ' || v_SQL || '';
+        v_SQL := v_SQL||' group by a.serviceid,m.CITY,b.oper_name_real,b.fee ';
+    
+          
+          
+             /* v_SQL := 'select a.opt_type,a.CITY,sum(JF_USER_NUM),sum(SUC_JF_TIMES) from tb_rpt_zfwbn_day a where 1=1 ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by a.opt_type,a.CITY,a.opt_type';
+*/
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_opt_type,v_CITY_NAME,v_CHN_NAME,v_OPER_CODE,v_TD_USER_NUM,v_NEW_USER_NUM,v_JF_USER_NUM;
+                 exit when tmp_cursor%notfound;
+
+
+                     pipe row(UMG_STAT_CHENNAL_RECORD (v_opt_type,
+                                                     '',
+                                                     '',
+                                                    '',
+                                                     v_OPER_CODE,
+                                                     '',
+                                                      v_CHN_NAME,
+                                                     v_TD_USER_NUM,
+                                                     v_NEW_USER_NUM,
+                                                     v_JF_USER_NUM,
+                                                     
+                                                     '',
+                                                     '',
+                                                     v_CITY_NAME));
+                 end loop;
+                 close tmp_cursor;
+
+
+        end if;
+
+
+
+
+    return;
+  end;
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                     理论收入统计，按业务，省份,地市统计                                         --
+  --                                      包月业务的情况                                                             --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatTheoryIncomeInfo(i_BEGINDATE   varchar2,                                      --日期条件,格式:yyyy-mm-dd
+                            i_opertype     varchar2,                                         --业务类型，801174--彩信，901808--短信
+                            i_PROVINCE       varchar2,                                       --省份编码
+                            i_SERVICENAME    varchar2,                                       --业务名称
+                            i_type           varchar2                                        --统计类型，1--按省份统计，2--按地市统计
+                       ) return UMG_STAT_OPERDAY_TABLE pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+    v_PROV_CODE        VARCHAR2(20);
+    v_PROV_NAME        VARCHAR2(20);
+    v_OPER_NAME        VARCHAR2(30);
+    v_fee              number;
+    v_JF_USER_NUM      INTEGER;
+    v_CITY_NAME        VARCHAR2(20);
+    v_CITY_CODE        VARCHAR2(20);
+    v_OPER_CODE        VARCHAR2(20);
+    v_appcode         VARCHAR2(20);
+
+  begin
+         v_SQL :='and a.deal_date =TO_CHAR('''|| i_BEGINDATE ||''')';
+
+        if i_SERVICENAME ='所有业务' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(b.oper_name,''' || i_SERVICENAME || ''')>0';
+
+        end if;
+
+       if i_PROVINCE <> '999' then
+           v_SQL := v_SQL || ' and a.PROV_CODE=''' || i_PROVINCE || '''';
+        end if;
+
+        if i_type='1' then   --统计类型，1--按省份统计
+               v_SQL := 'select b.OPER_CODE,a.PROV_CODE,a.PROV_NAME,b.oper_name,b.fee,sum(jf_user_num) from tb_theory_income a,tb_theory_income_base b where  a.appcode = b.appcode and b.spid = ''' || i_opertype || ''' ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by b.OPER_CODE,a.PROV_CODE,a.PROV_NAME,b.oper_name,b.fee';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_OPER_CODE,v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_fee,v_JF_USER_NUM;
+                 exit when tmp_cursor%notfound;
+
+
+                     pipe row(UMG_STAT_OPERDAY_RECORD (v_OPER_CODE,
+                                                     v_PROV_CODE,
+                                                     v_PROV_NAME,
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     v_fee,
+                                                     v_JF_USER_NUM,
+                                                     v_fee*v_JF_USER_NUM,
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     ''));
+                 end loop;
+                 close tmp_cursor;
+        else  --统计类型，2--按地市统计
+              v_SQL := 'select a.PROV_CODE,a.PROV_NAME,a.CITY_CODE,a.CITY_NAME,a.appcode,b.oper_name,b.fee,b.OPER_CODE,sum(jf_user_num) from tb_theory_income a,tb_theory_income_base b where  a.appcode = b.appcode and b.spid = ''' || i_opertype || ''' ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by a.PROV_CODE,a.PROV_NAME,a.CITY_CODE,a.CITY_NAME,b.oper_name,b.fee,b.OPER_CODE,a.appcode';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_PROV_CODE,v_PROV_NAME,v_CITY_CODE,v_CITY_NAME,v_appcode,v_OPER_NAME,v_fee,v_OPER_CODE,v_JF_USER_NUM;
+                 exit when tmp_cursor%notfound;
+
+
+                     pipe row(UMG_STAT_OPERDAY_RECORD (
+                                                     v_OPER_CODE,
+                                                     v_PROV_NAME,
+                                                      v_CITY_NAME,
+                                                      '',
+                                                     v_OPER_NAME,
+
+                                                     v_fee,
+                                                     v_JF_USER_NUM,
+                                                     v_fee*v_JF_USER_NUM,
+                                                     '',
+                                                     '',
+                                                    v_appcode,
+                                                     v_CITY_CODE,
+                                                     v_PROV_CODE));
+                 end loop;
+                 close tmp_cursor;
+
+
+        end if;
+
+
+
+    return;
+  end;
+
+
+   ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                                     理论收入统计，按业务，省份,地市统计                                         --
+  --                                      点播业务的情况                                                             --
+  ---------------------------------------------------------------------------------------------------------------------
+  function StatTheoryIncomeDianboInfo(i_BEGINDATE   varchar2,                                      --日期条件,格式:yyyy-mm-dd
+                            i_opertype     varchar2,                                         --业务类型，801174--彩信，901808--短信
+                            i_PROVINCE       varchar2,                                       --省份编码
+                            i_SERVICENAME    varchar2,                                       --业务名称
+                            i_type           varchar2                                        --统计类型，1--按省份统计，2--按地市统计
+                       ) return UMG_STAT_OPERDAY_TABLE1 pipelined as
+
+    v_SQL varchar2(32767);
+    type sms_cursor is ref  cursor;
+    tmp_cursor              sms_cursor;
+    v_PROV_CODE        VARCHAR2(20);
+    v_PROV_NAME        VARCHAR2(20);
+    v_OPER_NAME        VARCHAR2(30);
+    v_fee              number;
+    v_JF_USER_NUM      number;
+    v_CITY_NAME        VARCHAR2(20);
+    v_CITY_CODE        VARCHAR2(20);
+    v_OPER_CODE        VARCHAR2(20);
+    v_usernum number;
+
+  begin
+         v_SQL :='and a.deal_date =TO_CHAR('''|| i_BEGINDATE ||''')';
+
+        if i_SERVICENAME ='所有业务' then
+
+         v_SQL := v_SQL ;
+
+        else
+
+          v_SQL := v_SQL || ' and instr(a.oper_name,''' || i_SERVICENAME || ''')>0';
+
+        end if;
+
+       if i_PROVINCE <> '999' then
+           v_SQL := v_SQL || ' and a.PROV_CODE=''' || i_PROVINCE || '''';
+        end if;
+
+        if i_type='1' then   --统计类型，1--按省份统计
+               v_SQL := 'select a.OPER_CODE,a.PROV_CODE,a.PROV_NAME,a.oper_name,a.fee,sum(num),count(distinct mobile) from tb_theory_income_dianbo a where  a.spid = ''' || i_opertype || ''' ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by a.OPER_CODE,a.PROV_CODE,a.PROV_NAME,a.oper_name,a.fee';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_OPER_CODE,v_PROV_CODE,v_PROV_NAME,v_OPER_NAME,v_fee,v_JF_USER_NUM,v_usernum;
+                 exit when tmp_cursor%notfound;
+
+
+                     pipe row(UMG_STAT_OPERDAY_RECORD1 (v_OPER_CODE,
+                                                     v_PROV_CODE,
+                                                     v_PROV_NAME,
+                                                     '',
+                                                     v_OPER_NAME,
+                                                     v_fee,
+                                                     v_usernum,
+                                                     v_fee*v_JF_USER_NUM,
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     '',
+                                                     ''));
+                 end loop;
+                 close tmp_cursor;
+        else  --统计类型，2--按地市统计
+              v_SQL := 'select a.PROV_CODE,a.PROV_NAME,a.CITY_CODE,a.CITY_NAME,a.oper_name,a.fee,a.OPER_CODE,sum(num),count(distinct mobile) from tb_theory_income_dianbo a where  a.spid = ''' || i_opertype || ''' ' || v_SQL || '';
+
+               v_SQL := v_SQL||' group by a.PROV_CODE,a.PROV_NAME,a.CITY_CODE,a.CITY_NAME,a.oper_name,a.fee,a.OPER_CODE';
+
+                open tmp_cursor for v_SQL;
+                loop
+                 fetch tmp_cursor into v_PROV_CODE,v_PROV_NAME,v_CITY_CODE,v_CITY_NAME,v_OPER_NAME,v_fee,v_OPER_CODE,v_JF_USER_NUM,v_usernum;
+                 exit when tmp_cursor%notfound;
+
+
+                     pipe row(UMG_STAT_OPERDAY_RECORD1 (
+                                                     v_OPER_CODE,
+                                                     v_PROV_NAME,
+                                                      v_CITY_NAME,
+                                                      '',
+                                                     v_OPER_NAME,
+
+                                                     v_fee,
+                                                     v_usernum,
+                                                     v_fee*v_JF_USER_NUM,
+                                                     '',
+                                                     '',
+                                                    '',
+                                                     v_CITY_CODE,
+                                                     ''));
+                 end loop;
+                 close tmp_cursor;
+
+
+        end if;
+
+
+
+    return;
+  end;
+
+  ---------------------------------------------------------------------------------------------------------------------
+  --                                                                                                                 --
+  --                          计算点播收入中间存储过程                                                               --
+  --                                                                                                                 --
+  --                                                                                                                 --
+  ---------------------------------------------------------------------------------------------------------------------
+  procedure StatTheoryIncomeDianbo as   --日志日期条件,格式:yyyy-mm-dd
+
+  v_sql_item     varchar2(2000);
+  type v_cursor is ref cursor;
+  tmp_cursor_item  v_cursor;
+
+  v_sql_item1     varchar2(2000);
+  type v_cursor1 is ref cursor;
+  tmp_cursor_item1  v_cursor1;
+
+  v_tmp           integer;
+  --v_tmp1          integer;
+  v_tmp2          integer;
+  v_mobile       varchar2(20);
+  v_appcode      varchar2(20);
+  v_totals       integer;
+  v_oper_name         varchar2(50);
+  v_oper_name_real    varchar2(100);
+  v_oper_code         varchar2(20);
+  v_fee               varchar2(20);
+  v_spid              varchar2(10);
+  v_prov_name         varchar2(20);
+  v_prov_code         varchar2(20);
+  v_city_name         varchar2(20);
+  v_city_code         varchar2(20);
+  v_start_date        varchar2(20);
+  v_year_a            integer;
+  v_year_province     varchar2(20);
+  v_year_appcode      varchar2(20);
+  v_year_oper_code    varchar2(20);
+  v_tmp3              integer;
+  v_year_oper_name    varchar2(50);
+  v_year_fee          integer;
+  v_year_spid         varchar2(10);
+  i_YYYYMMDD          varchar2(20);
+
+  begin
+           i_YYYYMMDD:=to_char(sysdate-2,'yyyy-mm-dd');
+           --i_YYYYMMDD:='2011-10-31';
+           v_start_date:=SUBSTR(i_YYYYMMDD, 1, 7) || '-01';
+           delete from tb_theory_income_dianbo where deal_date=i_YYYYMMDD;                                   --清空指定日的统计数据
+           delete from tb_theory_income_year where deal_date=i_YYYYMMDD;
+
+           v_sql_item :='select mobile,appcode,totals from tmp_dianbo_day where deal_date='''||i_YYYYMMDD||'''';
+           --v_sql_item :='select mobile,appcode,totals from tmp_dianbo_day_tmp where deal_date='''||i_YYYYMMDD||'''';
+           
+          open tmp_cursor_item for v_sql_item;
+               loop
+                 fetch tmp_cursor_item into v_mobile,v_appcode,v_totals;
+                 exit when tmp_cursor_item%notfound;
+
+                   select count(*) into v_tmp from tb_theory_income_base_dianbo where appcode=v_appcode;
+                   if v_tmp<>0 then
+                      select oper_name,oper_name_real,oper_code,fee,spid into v_oper_name,v_oper_name_real,v_oper_code,v_fee,v_spid from tb_theory_income_base_dianbo where appcode=v_appcode;
+                   end if;
+
+                      ---取得手机的归属地
+                   select count(*) into v_tmp2 from nodist where BEGINNO=substrb(v_mobile,1,7);
+                    if v_tmp2<>0 then
+                      select province,provinceno,city,citycode into v_prov_name,v_prov_code,v_city_name,v_city_code from nodist where BEGINNO=substrb(v_mobile,1,7);
+                    end if;
+
+
+                    INSERT INTO tb_theory_income_dianbo
+                    (deal_date, --插入一条消息
+                     appcode,
+                     num,
+                     prov_code,
+                     prov_name,
+                     city_code,
+                     city_name,
+                     oper_name,
+                     oper_name_real,
+                     oper_code,
+                     fee,
+                     spid,
+                     mobile)
+                  VALUES
+                    (i_YYYYMMDD,
+                     v_appcode,
+                     v_totals,
+                     v_prov_code,
+                     v_prov_name,
+                     v_city_code,
+                     v_city_name,
+                     v_oper_name,
+                     v_oper_name_real,
+                     v_oper_code,
+                     v_fee,
+                     v_spid,
+                     v_mobile);
+                  COMMIT;
+
+               end loop;
+           close tmp_cursor_item;
+
+
+      /* 武英2011-04-23日屏蔽北京旧的包年业务统计数据生成   
+        v_sql_item1 :='select count(distinct mobile_sn) as a, m.province,o.appcode,o.jfcode  from new_wireless_subscription n , mobilenodist m , opt_code o
+                         where substr(n.mobile_sn,1,7)=m.beginno(+) and n.appcode=o.appcode  and mobile_sub_time >= to_date('''||v_start_date||''',''yyyy-mm-dd'') and mobile_sub_time < to_date('''||i_YYYYMMDD||''',''yyyy-mm-dd'')+1 and  o.opt_proty like ''%年%''   and m.province=''北京''
+                         group by m.province,o.opt_cost ,o.appcode,o.jfcode
+                         union all
+                         select count(distinct mobile_sn) as a, m.province,''10324010'' appcode, o.jfcode  from bjwz n , mobilenodist m , opt_code o
+                         where substr(n.mobile_sn,1,7)=m.beginno(+) and n.opt_type=o.opt_type and o.opt_type =''D'' and mobile_sub_time >= to_date('''||v_start_date||''',''yyyy-mm-dd'') and mobile_sub_time < to_date('''||i_YYYYMMDD||''',''yyyy-mm-dd'')+1 and  o.opt_proty =''短信包年'' and m.province=''北京''
+                         group by m.province,o.jfcode
+                         ';
+          open tmp_cursor_item1 for v_sql_item1;
+           loop
+             fetch tmp_cursor_item1 into v_year_a,v_year_province,v_year_appcode,v_year_oper_code;
+             exit when tmp_cursor_item1%notfound;
+
+             ---取得包年业务对应名称及资费
+             select count(*) into v_tmp3 from tb_theory_income_base_year where appcode=v_year_appcode;
+              if v_tmp3<>0 then
+                select oper_name,fee,spid into v_year_oper_name,v_year_fee,v_year_spid from tb_theory_income_base_year where appcode=v_year_appcode;
+              end if;
+
+              INSERT INTO tb_theory_income_year
+                    (deal_date, --插入一条消息
+                     appcode,
+                     oper_code,
+                     province,
+                     num,
+                     oper_name,
+                     fee,
+                     spid)
+                  VALUES
+                    (i_YYYYMMDD,
+                     v_year_appcode,
+                     v_year_oper_code,
+                     v_year_province,
+                     v_year_a,
+                     v_year_oper_name,
+                     v_year_fee,
+                     v_year_spid);
+                  COMMIT;
+
+           end loop;
+           close tmp_cursor_item1;*/
+
+    return;
+  end;
+
+
+END UMG_STAT_NEW;
