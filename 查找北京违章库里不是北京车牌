@@ -1,0 +1,1 @@
+ cat /data/wxlog/wxsub/BJWZNEW_ok.txt | awk -F'^' '{if($10==3 && $28=="BEIJING" && substr($11,1,2)!="京") print $2","$11}' > /data/wuying/bjwz_qf.txt
