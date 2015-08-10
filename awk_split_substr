@@ -1,0 +1,1 @@
+cat /data/match/cmpp/201207[1-3]*/outputumessage_005_wuxian_*_cmpp.out | grep ',wuxian_qianxiang,' | grep ',1065888075,' | awk -F',' '{ split($1,tmp,":"); print substr(tmp[4],2,14)"^"$15"^"$10"^"$14"^"$(NF-3)"^"$(NF-9)}'
