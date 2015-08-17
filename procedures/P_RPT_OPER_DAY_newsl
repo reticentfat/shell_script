@@ -1,0 +1,591 @@
+CREATE OR REPLACE PROCEDURE P_RPT_OPER_DAY_newsl
+(
+ v_txdate IN VARCHAR2,
+ v_retcode OUT NUMBER
+)
+IS
+--/************************************************************************************
+-- 功能描述: 业务日统计
+-- 数据源表：
+-- 目 标 表：
+-- 输入参数：当前处理日期、序号、分区号
+-- 输出参数：执行状态(0、执行成功,其他、执行失败),错误代码
+-- 创建人员: 武英
+-- 创建日期：2009-2-11
+-- 修改信息：
+-- 执行说明：
+--/************************************************************************************
+--DECLARE V_RETCODE NUMBER; BEGIN P_RPT_OPER_DAY('20090201',v_retcode ); END;
+-- 编写规则说明
+-- 说明1：所有自定义变量均用小写，并以v_打头；所有字段名均用大写
+-- 说明2: 所有关键值均用大字；模式名、表名、函数名、存储过程名均用大写
+-- 说明3: 段落之间的缩进为三个空格
+-- 说明4: SQL语句目标和源要齐整
+-- 说明5: 对每个表的数据作改变后都要显示的提交
+
+
+-- 变量定义
+
+   v_thisyyyymmdd CHAR(10);   -- 当日年月日变量
+   v_nextyyyymmdd CHAR(10);   -- 下日年月日变量
+   v_lastyyyymmdd CHAR(10);   -- 上日年月日变量
+   v_yyyymmdd 	  CHAR(10);   -- 年月日变量
+   v_nextyymmdd   CHAR(10);   -- 下月日变量
+   v_yymmdd21     CHAR(10);   -- 年月日变量
+   v_this_day	  CHAR(2);     -- 当日变量
+   v_this_date    DATE;
+   v_last_date    DATE;
+   v_lastyyyymmdd_3dq CHAR(10);
+
+
+   v_dealprc    VARCHAR2(128) DEFAULT '0'; -- 处理存储过程名称
+   v_errcode    NUMBER        DEFAULT 0;   -- 运行状态变量
+
+
+BEGIN
+   -- 设置返回初始值
+   v_retcode := 1;
+   v_dealprc := 'P_RPT_OPER_DAY_newsl';
+
+   -- 变量赋值
+   v_thisyyyymmdd := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD'),'YYYY-MM-DD');
+   v_nextyyyymmdd := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')+1,'YYYY-MM-DD');
+   v_lastyyyymmdd := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')-2,'YYYY-MM-DD');
+   v_this_day := SUBSTR(v_thisyyyymmdd,9,2);
+   v_yyyymmdd := SUBSTR(v_thisyyyymmdd,1,8)||'01';
+   v_yymmdd21 := SUBSTR(TO_CHAR(ADD_MONTHS(TO_DATE(v_txdate,'YYYY-MM-DD'),1),'YYYY-MM-DD'),1,8)||'01';--SUBSTR(v_thisyyyymmdd,1,8)||'21';
+   v_lastyyyymmdd_3dq := TO_CHAR(TO_DATE(v_yyyymmdd,'YYYY-MM-DD')-3,'YYYY-MM-DD');--上个月倒数第三天
+   v_nextyymmdd := SUBSTR(TO_CHAR(ADD_MONTHS(TO_DATE(v_txdate,'YYYY-MM-DD'),1),'YYYY-MM-DD'),1,8)||'01';
+   v_this_date := TO_DATE(v_txdate||' 23:59:59','YYYY-MM-DD HH24:MI:SS');
+   v_last_date := TO_DATE(v_txdate||' 23:59:59','YYYY-MM-DD HH24:MI:SS')-1;
+   
+
+
+
+   -- 正文SQL处理
+
+   --删除数据
+
+  EXECUTE IMMEDIATE 'TRUNCATE TABLE TMPNEW_RPT_OPER_DAY';
+
+  DELETE FROM PTJ.TB_RPT_OPER_DAY WHERE DEAL_DATE=v_thisyyyymmdd and  OPER_CODE   in ('Y14','Y15','Y16','Y17','Y18','Y19','Y20','Y21','5','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','45','46','47','49','50','51','54','55','56','57','58','59','61','62','63','64','65','67','68','69','70','71','72','75','76','77','78','79','81','82','83','84','85','F8','F10');
+    COMMIT;
+    
+  
+
+  DELETE FROM PTJ.TB_RPT_OPER_TOT_DAY
+   WHERE DEAL_DATE=v_thisyyyymmdd AND OPER_CODE  in ('Y14','Y15','Y16','Y17','Y18','Y19','Y20','Y21','5','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','45','46','47','49','50','51','54','55','56','57','58','59','61','62','63','64','65','67','68','69','70','71','72','75','76','77','78','79','81','82','83','84','85','F8','F10'); ----彩票汇总
+
+  COMMIT;
+
+
+
+
+ ----------------------------------------------------------------------------
+/*
+ 彩票计费统计-新订购表 2009-06-17 武英 */
+ ---------------------------------------------------------------------------
+--插入 留存用户数
+/* IF v_this_day='01' THEN*/
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,ON_USER_NUM	--留存用户数
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+       o.opt_type,
+       o.opt_cost,
+COUNT(DISTINCT MOBILE_SN)
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and T1.APPCODE=o.APPCODE
+
+  --AND MOBILE_SUB_TIME < to_date(v_lastyyyymmdd_3dq,'yyyy-mm-dd')
+   AND MOBILE_SUB_TIME < to_date(v_yyyymmdd,'yyyy-mm-dd')
+    AND T1.APPCODE IN ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+   GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+         NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+o.opt_type,
+o.opt_cost
+;
+COMMIT;
+
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,ON_USER_NUM	--留存用户数
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+       o.opt_type,
+       o.opt_cost,
+-COUNT(DISTINCT MOBILE_SN)
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and T1.APPCODE=o.APPCODE
+ -- AND MOBILE_SUB_TIME < to_date(v_lastyyyymmdd_3dq,'yyyy-mm-dd')
+   AND MOBILE_modify_TIME < to_date(v_yyyymmdd,'yyyy-mm-dd') 
+   AND MOBILE_SUB_TIME < to_date(v_yyyymmdd,'yyyy-mm-dd')
+   AND MOBILE_SUB_STATE =0
+    AND T1.APPCODE IN ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+
+GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+         NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+o.opt_type,
+o.opt_cost
+;
+COMMIT;
+
+
+--插入计费留存用户数
+
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,ON_JFUSER_NUM	--留存用户数
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+       o.opt_type,
+       o.opt_cost,
+COUNT(DISTINCT MOBILE_SN)
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and T1.APPCODE=o.APPCODE
+
+  --AND MOBILE_SUB_TIME < to_date(v_lastyyyymmdd_3dq,'yyyy-mm-dd')
+   AND MOBILE_SUB_TIME < to_date(v_lastyyyymmdd_3dq,'yyyy-mm-dd')
+    AND T1.APPCODE IN ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+   GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+         NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+o.opt_type,
+o.opt_cost
+;
+COMMIT;
+
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,ON_JFUSER_NUM	--留存用户数
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+       o.opt_type,
+       o.opt_cost,
+-COUNT(DISTINCT MOBILE_SN)
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and T1.APPCODE=o.APPCODE
+ -- AND MOBILE_SUB_TIME < to_date(v_lastyyyymmdd_3dq,'yyyy-mm-dd')
+  AND MOBILE_modify_TIME < to_date(v_yyyymmdd,'yyyy-mm-dd') 
+   AND MOBILE_SUB_TIME < to_date(v_lastyyyymmdd_3dq,'yyyy-mm-dd')
+   AND MOBILE_SUB_STATE =0
+    AND T1.APPCODE IN ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+
+GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+         NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+o.opt_type,
+o.opt_cost
+;
+COMMIT;
+
+
+
+/* END IF;*/
+
+--插入新增包月用户数
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,NEW_USER_NUM	--新增包月用户数
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+       o.opt_type,
+       o.opt_cost,
+COUNT(DISTINCT MOBILE_SN)
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and T1.APPCODE=o.APPCODE
+  AND MOBILE_SUB_TIME >= to_date(v_thisyyyymmdd,'yyyy-mm-dd')
+  AND MOBILE_SUB_TIME <  to_date(v_nextyyyymmdd,'yyyy-mm-dd')
+    AND T1.APPCODE IN  ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+
+
+GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+         NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+o.opt_type,
+o.opt_cost;
+  COMMIT;
+
+--插入退订用户数
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,TD_USER_NUM	--新增退订用户数 每天的新增
+ ,MFTD_USER_NUM --免费退订用户数
+,DRTD_NUM	 		--当日订当日退订
+,DYTD_NUM	 	--当月订当月退订
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+       o.opt_type,
+       o.opt_cost,
+COUNT(DISTINCT MOBILE_SN),
+COUNT(DISTINCT CASE WHEN (--MOBILE_SUB_TIME >= to_date(v_yyyymmdd,'yyyy-mm-dd')  AND MOBILE_SUB_TIME < to_date(v_yymmdd21,'yyyy-mm-dd') AND   
+      (v_this_date - MOBILE_SUB_TIME)*24 <=72 ) 
+                     -- OR (MOBILE_SUB_TIME >= to_date(v_yymmdd21,'yyyy-mm-dd') AND MOBILE_SUB_TIME < to_date(v_nextyymmdd,'yyyy-mm-dd')) 
+                    THEN MOBILE_SN ELSE NULL END),
+COUNT(DISTINCT CASE WHEN substr(to_char(mobile_sub_time,'yyyy-mm-dd hh24:mi:ss'),1,10) =  substr(to_char(mobile_modify_time,'yyyy-mm-dd hh24:mi:ss'),1,10) THEN MOBILE_SN ELSE NULL END) ,                
+COUNT(DISTINCT CASE WHEN substr(to_char(mobile_sub_time,'yyyy-mm-dd hh24:mi:ss'),1,7) =  substr(to_char(mobile_modify_time,'yyyy-mm-dd hh24:mi:ss'),1,7) THEN MOBILE_SN ELSE NULL END)                 
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and  T1.APPCODE=o.APPCODE
+  AND MOBILE_MODIFY_TIME >= to_date(v_thisyyyymmdd,'yyyy-mm-dd')
+  AND MOBILE_MODIFY_TIME < to_date(v_nextyyyymmdd,'yyyy-mm-dd')
+  AND T1.APPCODE IN  ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+
+                      AND MOBILE_SUB_STATE = 0
+GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+      NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+o.opt_type,
+o.opt_cost
+;
+  COMMIT;
+
+
+--插入新增计费用户数
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,JF_USER_NUM	--新增计费用户数
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+       o.opt_type,
+       o.opt_cost,
+COUNT(DISTINCT CASE WHEN (v_this_date - MOBILE_SUB_TIME)*24 >72
+                    THEN MOBILE_SN ELSE NULL END)
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2 ,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and  T1.APPCODE=o.APPCODE
+  AND MOBILE_SUB_TIME >=  to_date(v_lastyyyymmdd_3dq,'YYYY-MM-DD')
+  AND MOBILE_SUB_TIME <  to_date(v_yymmdd21,'YYYY-MM-DD')
+  AND MOBILE_SUB_STATE = 3
+ AND T1.APPCODE IN  ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+      GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+      NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+o.opt_type,
+o.opt_cost
+;
+  COMMIT;
+
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,JF_USER_NUM	--新增计费用户数
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+ o.opt_type,
+       o.opt_cost,
+-COUNT(DISTINCT CASE WHEN ( V_LAST_DATE - MOBILE_SUB_TIME)*24 >72
+                    THEN MOBILE_SN ELSE NULL END)
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and  T1.APPCODE=o.APPCODE
+  AND MOBILE_SUB_TIME >=  to_date(v_lastyyyymmdd_3dq,'YYYY-MM-DD')
+  AND MOBILE_SUB_TIME < to_date(v_yymmdd21,'YYYY-MM-DD')
+  AND MOBILE_SUB_STATE = 3
+  AND T1.APPCODE IN  ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+        GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+NVL(CITYCODE,'000'),NVL(CITY,'未知'),
+o.opt_type,
+o.opt_cost
+;
+  COMMIT;
+
+
+ ---插入截止当月当日累计暂停用户
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称			
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,ZTYHDY_NUM	 	--	截止当日暂停 
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),  
+ o.opt_type,
+       o.opt_cost,
+ COUNT(DISTINCT  MOBILE_SN  )
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2 ,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and  T1.APPCODE=o.APPCODE 
+  AND MOBILE_SUB_TIME >=  to_date(v_yyyymmdd,'YYYY-MM-DD')
+  AND MOBILE_SUB_TIME <  to_date(v_thisyyyymmdd,'YYYY-MM-DD')
+  --AND MOBILE_SUB_STATE = 3 
+  AND t1.is_paused = 0 
+  AND T1.APPCODE IN  ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+      GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+      NVL(CITYCODE,'000'),NVL(CITY,'未知'),  
+o.opt_type,
+o.opt_cost
+;
+  COMMIT;   
+ ---插入截止当日累计暂停用户
+INSERT INTO TMPNEW_RPT_OPER_DAY
+(
+  PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称			
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,ZTYH_NUM	 	--	截止当日暂停 
+)
+SELECT NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+       NVL(CITYCODE,'000'),NVL(CITY,'未知'),  
+ o.opt_type,
+       o.opt_cost,
+ COUNT(DISTINCT  MOBILE_SN  )
+FROM new_wireless_subscription_sl T1, MOBILENODIST T2 ,opt_code o
+WHERE SUBSTR(T1.MOBILE_SN,1,7)=T2.BEGINNO(+) and  T1.APPCODE=o.APPCODE 
+ 
+  AND MOBILE_SUB_TIME <  to_date(v_nextyyyymmdd,'YYYY-MM-DD')
+  AND MOBILE_SUB_STATE = 3 
+  AND t1.is_paused = 0 
+  AND T1.APPCODE IN  ('10511023','10511022','10511014','10322002','10301013','10511017','10511012',
+                       '10522003','10301015','10511008','10301018','10301019','10301020','10301021',
+                       '10301022','10301023','10301024','10301025','10511019','10511020','10511024',
+                       '10324001','10324002','10324003','10324004','10324005','10324006','10324007',
+                       '10324008','10301055','10502022','10301062','10301075','10301076','10511040',
+                       '10301077','10511041','10511044','10511005','10301016','10511015','10511013',
+                       '10301088','10301083','10301082','10511046','10301085','10301079','10301084',
+                       '10301087','10511047','10301034','10301035','10301096','10301099','10511049',
+                       '10301089','10301090','10301094','10301095','10301098','10511048','10301101',
+                       '10301102','10511050','10301100','10301105','10511051','10301051','10301052',
+                       '10511052','10301063','10511055','10611015','10301042','10301044')
+      GROUP BY NVL(PROVINCENO,'000'),NVL(PROVINCE,'未知'),
+      NVL(CITYCODE,'000'),NVL(CITY,'未知'),  
+o.opt_type,
+o.opt_cost
+; 
+ 
+COMMIT; 
+
+
+
+
+
+  --------------------------------------------------------------------------------
+--汇总数据
+INSERT INTO TB_RPT_OPER_DAY
+(
+  DEAL_DATE
+ ,PROV_CODE	--省代码
+ ,PROV_NAME	--省名称
+ ,CITY_CODE --地市代码
+ ,CITY_NAME --地市名称
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,ON_USER_NUM	--留存用户数
+ ,ON_JFUSER_NUM	--留存计费用户数
+ ,JF_USER_NUM	--计费用户数
+ ,NEW_USER_NUM	--新增用户数
+ ,TD_USER_NUM   --退定用户数
+ ,MFTD_USER_NUM  --免费退定用户数
+  ,DRTD_NUM	 		--当日订当日退订
+  ,DYTD_NUM	 	--当月订当月退订
+ ,ZTYH_NUM	 	--	截止当日暂停 
+  ,ZTYHDY_NUM	 	--	截止当日暂停 
+ )
+SELECT v_thisyyyymmdd,
+       PROV_CODE,
+       PROV_NAME,
+       CITY_CODE,
+       CITY_NAME,
+       OPER_CODE,
+       OPER_NAME,
+       SUM(ON_USER_NUM),
+       SUM(ON_JFUSER_NUM),
+       SUM(JF_USER_NUM),
+       SUM(NEW_USER_NUM),
+       SUM(TD_USER_NUM),
+       SUM(MFTD_USER_NUM),
+        SUM(DRTD_NUM),
+       SUM(DYTD_NUM),
+       SUM(ZTYH_NUM),
+       SUM(ZTYHDY_NUM) 
+FROM TMPNEW_RPT_OPER_DAY
+GROUP BY PROV_CODE,
+         PROV_NAME,
+         CITY_CODE,
+         CITY_NAME,
+         OPER_CODE,
+         OPER_NAME
+;
+
+
+COMMIT;
+--清空统计临时表
+  EXECUTE IMMEDIATE 'TRUNCATE TABLE new_wireless_subscription_sl';
+COMMIT; 
+--插入业务汇总数据
+INSERT INTO TB_RPT_OPER_TOT_DAY
+(
+  DEAL_DATE
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,ON_USER_NUM	--留存用户数
+ ,JF_USER_NUM	--计费用户数
+ ,NEW_USER_NUM	--新增用户数
+ ,TD_USER_NUM   --退定用户数
+ )
+SELECT v_thisyyyymmdd
+ ,OPER_CODE	--业务代码
+ ,OPER_NAME	--业务名称
+ ,SUM(ON_USER_NUM)	--留存用户数
+ ,SUM(JF_USER_NUM)	--计费用户数
+ ,SUM(NEW_USER_NUM)	--新增用户数
+ ,SUM(TD_USER_NUM)   --退定用户数
+FROM TB_RPT_OPER_DAY
+WHERE DEAL_DATE =v_thisyyyymmdd AND OPER_CODE  in ('Y14','Y15','Y16','Y17','Y18','Y19','Y20','Y21','5','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','45','46','47','49','50','51','54','55','56','57','58','59','61','62','63','64','65','67','68','69','70','71','72','75','76','77','78','79','81','82','83','84','85','F8','F10')
+GROUP BY OPER_CODE,OPER_NAME
+;
+
+COMMIT;
+
+
+   -- 得到返回值
+   v_retcode := SQLCODE;
+   RETURN;
+
+END P_RPT_OPER_DAY_newsl;
+
+ 
