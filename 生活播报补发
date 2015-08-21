@@ -1,0 +1,15 @@
+ 如果需要补发（一种情况是下发失败较多的情况，需要用下发列表号码与实际下发号码比较，找到没有下发的号码明细进行补发。） 
+   最新的下发列表地址 http://192.100.6.31:9999/data/dump/SHBB/ 下面的user.txt.bz2 是主刊号码。 与刘彦华核对一下总量，
+然后到172.200.5.31 （需要连接无锡的VPN）目录 /logs/monster/ 下面找 monster-mm7mt.log开头的bz2文件列表，看一下文件生成时间 monster-mm7mt.log.0.bz2是一个小时前的下发明细。生活播报主刊上午是10点开始下发，如果快的话应该中午12点前能发完，如果慢就得等到下午2点半之后大概4点半能发完，你可以用这个语句查询统计一下目前下发的总量
+bzcat /logs/monster/monster-mm7mt.log.[0-6].bz2 | grep -e ',22220032,' -e ',22200030,' -e ',22230033,' -e ',22220042,' |  wc -l
+如果下发总量和刘彦华收到的下发成功总量差不多相符，就可以用以下语句生成目标号码
+ 
+       bzcat /logs/monster/monster-mm7mt.log.[0-6].bz2 | grep -e ',22220032,' -e ',22200030,' -e ',22230033,' -e ',22220042,' | awk -F',' '{print $12","$15}' | bzip2 > /root/shbb_bf/shbb_all0820.txt.bz2
+         然后下载下来解压后与下发列表文件 user.txt.bz2 解压后名字改为users0820.txt 比较出下发列表比实际下发号码多的明细 shbb_all0820_bf.txt 。检查一下总量
+补发文件量 （shbb_all0820_bf.txt ≈ 下发列表文件 （users0820.txt）- 实际下发量（shbb_all0820.txt）
+
+
+awk  -F '[, \t]' -v opt_code=shbb_all0820.txt -v file_oka=users0820.txt   -v file_ok2=shbb_all0820_bf.txt   '{ 
+if(FILENAME == opt_code   )  o[$1$2]=$0 ;
+else if(FILENAME == file_oka &&  ! ($1$4  in o ) ) print  $1 >>  file_ok2 
+}'   shbb_all0820.txt  users0820.txt
