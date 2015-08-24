@@ -1,0 +1,93 @@
+先把“离网客户明细.txt”转变格式并压缩
+awk -F'|' '{print $1"|" }' 离网客户明细.txt | sort | uniq -u |unix2dos | bzip2 > wy.txt.bz2
+158上
+07 16 19 08 * bzcat /home/oracle/wangyuan.txt.bz2  /home/oracle/etl/data/data/snapshot/snapshot.txt.bz2  | awk -F'|' '{if(NF==2) aa[$1]=$1;else if($3=="06"&&($1 in aa))  print $1","$2","$3","$8","$14}' | bzip2 > /home/oracle/hlj_zaixian.txt.bz2
+[oracle@wxtjdb data]$ bzcat /home/oracle/etl/data/data/user_sn.txt.bz2 | head
+13070191176|10324010|07|20110629171226|20100527153416|20100527153416|1|010|10||SUB_ZUOXI
+13241336773|10324010|07|20101130134458|20091126063822|20091126063822|1|010|10||SUB_ZUOXI
+#匹配违章
+00 16 24 08 * bzcat /home/oracle/wangyuan.txt.bz2  /home/oracle/etl/data/data/user_sn.txt.bz2  | awk -F'|' '{if(NF==2) aa[$1]=$1;else if($3=="06"&&($1 in aa))  print $1","$2","$3","$8","$14}' | bzip2 > /home/oracle/hlj_zaixiani1.txt.bz2
+cat 333.txtt | awk -F'\t' '{if($4~/\//){print $1"\t"$2"\t"$3"\tQX98"; print $1"\t"$2"\t"$3"\tQX99";}else print;}' | unix2dos > zxqr_shbb_online_style.txt
+cat zxqr_shbb_online_style.txt | awk -F'\t' '{print "http://192.100.6.33:8888/subscribe?id="$1"&servcode="$2"&longcode="$3"&command="$4"&channel1=UNSUB_PITUI" ;}' | unix2dos>url.txt
+
+然后导入jf_1,
+字段如下
+mobile,opt_code,cartype,subtime,opttime,serial,job_num,biz_code
+-----------------------------------------------------------------
+select j.mobile   用户号码,
+       j.province 省份，
+       j.city 地市，
+       b.state    用户状态,
+       b.betime   订购时间,
+       b.endtime  退订时间,
+       b.opt_cost 业务名称 -- j.province,j.city, b.*, j.biz_code 
+  from (select j.mobile, j.opt_code, m.province, m.city
+          from jf_1 j, mobilenodist m
+         where substr(j.mobile, 1, 7) = m.beginno
+          ) j
+  left join (select mobile_sn,
+                    case
+                      when n.mobile_sub_state = 3 then
+                       '订购中'
+                      else
+                       '已退定'
+                    end state,
+                    o.opt_cost,
+                    o.jfcode,
+                    o.appcode,
+                    to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') betime,
+                    to_char(n.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') endtime
+               from new_wireless_subscription n, opt_code o
+              where n.appcode = o.appcode
+               ) b on j.mobile = b.mobile_sn and j.opt_code=b.appcode
+               union all
+               select j.mobile   用户号码,
+       j.province 省份，
+       j.city 地市，
+       b.state    用户状态,
+       b.betime   订购时间,
+       b.endtime  退订时间,
+       b.opt_cost 业务名称 -- j.province,j.city, b.*, j.biz_code 
+  from (select j.mobile, j.opt_code, m.province, m.city
+          from jf_1 j, mobilenodist m
+         where substr(j.mobile, 1, 7) = m.beginno
+          ) j
+  left join (select mobile_sn,
+                    case
+                      when n.mobile_sub_state = 3 then
+                       '订购中'
+                      else
+                       '已退定'
+                    end state,
+                    o.opt_cost,
+                    o.jfcode,
+                    o.appcode,
+                    to_char(n.mobile_sub_time, 'yyyy-mm-dd hh24:mi:ss') betime,
+                    to_char(n.mobile_modify_time, 'yyyy-mm-dd hh24:mi:ss') endtime
+               from new_wireless_subscription_shbb n, opt_code o
+              where n.appcode = o.appcode
+               ) b on j.mobile = b.mobile_sn and j.opt_code=b.appcode
+               -------------------------然后退订------------------
+
+
+select 'http://192.100.6.33:8888/cancel?id=' || t.mobile_sn || chr(38) ||
+       'servcode=' || t.servcode || chr(38) || 'longcode=' ||
+       t.mobile_up_long_code || chr(38) || 'command=' || o.unsub_cmd ||
+       chr(38) || 'channel1=UNSUB_PITUI'
+  from new_wireless_subscription t, opt_code o,jf_1 j
+ where t.appcode = o.appcode
+   and j.mobile=t.mobile_sn
+   and j.opt_code=t.appcode
+   and t.mobile_sub_state='3'
+   union all
+   select 'http://192.100.6.33:8888/cancel?id=' || t.mobile_sn || chr(38) ||
+       'servcode=' || t.servcode || chr(38) || 'longcode=' ||
+       t.mobile_up_long_code || chr(38) || 'command=' || o.unsub_cmd ||
+       chr(38) || 'channel1=UNSUB_PITUI'
+  from new_wireless_subscription_shbb t, opt_code_shbb o,jf_1 j
+ where t.appcode = o.appcode
+   and j.mobile=t.mobile_sn
+   and j.opt_code=t.appcode
+   and t.mobile_sub_state='3'
+   -------------------------
+   1065888098
