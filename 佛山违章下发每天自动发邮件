@@ -1,0 +1,81 @@
+foshan_test2.sh生成数据
+#!/bin/sh
+DEALDATE=`date -v-1d  +%Y%m%d`
+cd /data/foshan_weizhang_app
+mkdir ${DEALDATE}
+echo "mkdir_done"
+cd ${DEALDATE}
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_0.txt.bz2
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_2.txt.bz2
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_3.txt.bz2
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_4.txt.bz2
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_5.txt.bz2
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_6.txt.bz2
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_7.txt.bz2
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_8.txt.bz2
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_9.txt.bz2
+wget http://192.100.7.19/interface/weizhang_create/interface/foshan/data/weizhang_10.txt.bz2
+echo "wget_done"
+bzcat weizhang_*.txt.bz2 | iconv -f utf-8 -t gbk | bzip2 > temp1.txt.bz2
+echo "jieya_done"
+bzcat temp1.txt.bz2 | awk -F'\t' '{print $2"|"$3}'  | awk -F'[，|]' '{print $1"|"$7}'| awk -F'|' '{print $1"|"substr($2,index($2,"粤"),index($2,"在")-index($2,"粤"))}' | bzip2 > chepai_temp_2.txt.bz2
+ bzcat chepai_temp_2.txt.bz2  temp1.txt.bz2  | awk -F'[|\t]' '{if(NF==2) aa[$1]=$2; else  if ( $2  in aa)  print $1"|"aa[$2]"|"$3  }' | iconv -f gbk -t utf-8 | sed 's/$'"/`echo -e \\\r`/" | bzip2 > foshan_weizhang_quanliang.txt.bz2
+ -------------邮件php----------------------
+ <?php
+	/**
+	* @desc 佛山违章 每天发送违章内容日志 
+	* @author wangyuan
+	* @date 2015-08-27 16:35
+	*
+	*/
+
+	error_reporting(E_ALL);
+	define('SERVER_ROOT', dirname(__FILE__).'/');
+	
+	$end_time = date("Y-m-d",time()-3600*24);
+	$start_time = date("Y-m-d" ,time()-3600*72);
+
+	//$fileName = "general.txt";
+	$file = $_SERVER['argv'][1];
+	$fileName = basename($file); 
+	//$file = SERVER_ROOT . $fileName;
+	if( !file_exists($file)) {
+		exit;
+	}
+
+	//把整个文件读入一个变量	
+	$fp = fopen($file, "r");	
+	$read = fread($fp, filesize($file));
+
+	//base64编码
+	$read = base64_encode($read);
+
+
+	//把这个长字符串切成由每行76个字符组成的小块
+	$read = chunk_split($read);
+	
+	$boundary = uniqid();
+
+	//建立邮件的主体
+	$body = "--$boundary\n";
+	$body .= "Content-Type:application/octet-stream;name=\"".$fileName;
+	$body .= "\"\nContent-Transfer-Encoding:BASE64\n";
+	$body .= "Content-Disposition:attachment;filename=\"".$fileName;
+	$body .= "\"\n\n".$read."\n\n";
+	$body .= "--$boundary--\n\n";
+
+	$headers = "From:wangyuan@umessage.com.cn\n";
+	$headers .= "Cc:13581960272@139.com\n";
+	$headers .= "Content-type:multipart/mixed;boundary=\"$boundary\"";
+	$subject = iconv("UTF-8", "gbk", "佛山违章内容---".$start_time."日用户详单");
+	$to = "13929939889@139.com";
+	var_dump(mail($to, $subject,$body,$headers));
+
+?>
+ ----------邮件下发shell---------------------
+ #!bin/bash
+DEALDATE=`date -v-1d  +%Y%m%d`
+echo ${DEALDATE}
+echo `date -v-1d  +%Y%m%d` >  /home/gateway/log/foshan_weizhang_email.log
+/usr/local/bin/php /data/211/bin/foshanweizhang_sedMail.php /data/foshan_weizhang_app/${DEALDATE}/foshan_weizhang_quanliang.txt.bz2 >> /home/gateway/log/foshan_weizhang_email.log
+echo ${DEALDATE}
