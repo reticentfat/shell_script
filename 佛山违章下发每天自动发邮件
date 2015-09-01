@@ -79,3 +79,7 @@ echo ${DEALDATE}
 echo `date -v-1d  +%Y%m%d` >  /home/gateway/log/foshan_weizhang_email.log
 /usr/local/bin/php /data/211/bin/foshanweizhang_sedMail.php /data/foshan_weizhang_app/${DEALDATE}/foshan_weizhang_quanliang.txt.bz2 >> /home/gateway/log/foshan_weizhang_email.log
 echo ${DEALDATE}
+----------crontab-----------------
+#foshan_weizhang_email
+30 08 * * *  /bin/sh  /data/211/bin/foshan_test2.sh > /dev/null 2>&1
+30 09 * * * /bin/sh /data/211/bin/foshanweizhang_mail.sh  > /dev/null 2>&1
