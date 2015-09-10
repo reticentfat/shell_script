@@ -1,0 +1,58 @@
+#先yhj_count.sh
+#!/bin/sh
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/gateway/;
+export PATH
+DEALDATE=`date -v-1d  +%Y%m%d`
+DEALDATE_1=`date -v-1d  +%Y-%m-%d`
+
+cd /data/yhj_count
+mkdir ${DEALDATE}
+echo "mkdir_done"
+cd ${DEALDATE}
+wget -N "http://192.100.7.5:9999/down/data/YHJ.txt"
+mysql -h192.100.7.19 -ur_slave_db  -pw###T -D caipiaoManage_ef  -N -e " SELECT  e.sub_col_1,count(e.store_code) FROM ef_store e WHERE e.sub_col_1 = 'CP1006' OR e.sub_col_1 = 'CP1008' GROUP BY e.sub_col_1 ;" |  awk '{print $1","$2}' >   /data/yhj_count/${DEALDATE}/yhj_${DEALDATE}_waibutongbu_count.txt 
+cat YHJ.txt  | iconv -f UTF-8  -t GB18030 | awk -F'[\t ]' '{if(substr($7,1,4)=="浙江") print "CP1006" ; else if(substr($7,1,4)=="内蒙" ) print "CP1008" ;}' | sort | uniq -c | awk '{print $2","$1}'> /data/yhj_count/${DEALDATE}/yhj_${DEALDATE}_neibutongbu_count.txt
+#cat YHJ.txt  | awk -F'[\t ]' '{ print $7 }' | sort | uniq -c > /data/yhj_count/${DEALDATE}/yhj_${DEALDATE}_neibutongbu_count.txt
+mysql -h172.200.7.13 -ur_slave_db  -p###dM -D coupon  -N -e " SELECT CASE WHEN ( SUBSTR(o.code,1,3) >= 570 AND SUBSTR(o.code,1,3)<=580 ) THEN 'CP1006' WHEN ( SUBSTR(o.code,1,3) >= 471 AND SUBSTR(o.code,1,3)<=482) THEN'CP1008'END pronvice,COUNT(case when ((SUBSTR(o.code,1,3) >= 471 AND SUBSTR(o.code,1,3)<=482) or (SUBSTR(o.code,1,3) >= 570 AND SUBSTR(o.code,1,3)<=580))AND o.source != '99' THEN id end ) waibu, COUNT(case when ((SUBSTR(o.code,1,3) >= 471 AND SUBSTR(o.code,1,3)<=482)or (SUBSTR(o.code,1,3) >= 570 AND SUBSTR(o.code,1,3)<=580))AND o.source = '99' THEN id  end ) neibu FROM ondemand o where ((SUBSTR(o.code,1,3) >= 471 AND SUBSTR(o.code,1,3)<=482) or (SUBSTR(o.code,1,3) >= 570 AND SUBSTR(o.code,1,3)<=580 )) GROUP BY pronvice ;" |  awk '{print $1","$2","$3}' >   /data/yhj_count/${DEALDATE}/yhjxiazailiang_${DEALDATE}_count.txt
+cat  yhj_${DEALDATE}_neibutongbu_count.txt | awk -F',' '{print $1","$2",0,0,0"}' >yhj_neibu_tmp1.txt
+cat  yhj_${DEALDATE}_waibutongbu_count.txt | awk -F',' '{print $1",0,"$2",0,0"}' >yhj_waibu_tmp1.txt
+cat  yhjxiazailiang_${DEALDATE}_count.txt | awk -F',' '{print $1",0,0,"$2","$3}' >yhjxiazailiang_tmp1.txt
+#awk -F',' -v NODIST_DIR=yhj_${DEALDATE}_waibutongbu_count.txt 'BEGIN{print "省份名称,优惠券数量业务平台数据,优惠券数量外部同步数据,优惠券数量总计,优惠券下载量业务平台数据,优惠券下载量外部同步数据,优惠券下载量总计,优惠券商户业务平台数据,优惠券商户外部同步数据,优惠券商户总计,非优惠券商户业务平台数据,非优惠券商户外部同步数据,非优惠券商户总计";}{if(FILENAME == NODIST_DIR) aa[$1] = $2;else if(FILENAME != NODIST_DIR )  print $1","$2","aa[$1];}' yhj_${DEALDATE}_waibutongbu_count.txt yhj_${DEALDATE}_neibutongbu_count.txt  > temp1.txt
+cat yhj*tmp1.txt |awk -F',' '{ aa[$1] +=$2; bb[$1] +=$3 ; cc[$1] +=$4; dd[$1] +=$5}END{for (i in aa){ print i","aa[i]","bb[i]","aa[i]+bb[i]","cc[i]","dd[i]","cc[i]+dd[i]} }' >dic_allcount.txt
+#yhj_merge.sh 
+#!/bin/sh
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/gateway/;
+export PATH
+DEALDATE=`date -v-1d  +%Y%m%d`
+DEALDATE_1=`date -v-1d  +%Y-%m-%d`
+DEALDATE_year=`date -v-1d  +%Y`
+GDQX_DIR="/data/yhj_count/"$DEALDATE
+FILE_NAME=yhj_${DEALDATE}_inventory.csv
+echo $DEALDATE_year
+echo $DEALDATE
+cd /data/yhj_count/${DEALDATE}
+awk -F',' -v DIR=coupon_info_${DEALDATE}.csv '{if (FILENAME==DIR) aa[$1]=$3","$4","$3+$4","$5","$6","$5+$6; else if (FILENAME!=DIR && $1 in aa) print $0","aa[$1]; else if (FILENAME!=DIR && !($1  in aa)) print $0",0,0,0,0,0,0"}' coupon_info_${DEALDATE}.csv dic_allcount.txt > yhj_menrge_tmp1.txt
+awk -F',' -v DIR=/data/211/dictionary/cp_code_all.txt '{if (FILENAME==DIR) aa[$1]=$2 ;else if (FILENAME!=DIR ) print aa[$1]","$2","$3","$4","$5","$6","$7","$8","$9","$10","$11","$12","$13 }' /data/211/dictionary/cp_code_all.txt yhj_menrge_tmp1.txt > yhj_${DEALDATE}_inventory.txt
+echo "省份名称,优惠券数量业务平台数据,优惠券数量外部同步数据,优惠券数量总计,优惠券下载量业务平台数据,优惠券下载量外部同步数据,优惠券下载量总计,优惠券商户业务平台数据,优惠券商户外部同步数据,优惠券商户总计,非优惠券商户业务平台数据,非优惠券商户外部同步数据,非优惠券商户总计" > yhj_menrge_tmp2.txt
+cat yhj_menrge_tmp2.txt yhj_${DEALDATE}_inventory.txt >yhj_${DEALDATE}_inventory.csv
+
+ftp -v -n 183.207.110.172 << EOF
+user x##i a##8
+cd $DEALDATE_year
+
+cd $DEALDATE
+
+lcd $GDQX_DIR 
+#lcd [ directory ] 更改 local host 的工作目录
+prompt 
+#更改交谈模式，若为 on 则在 mput 与 mget 时每做一个文件传输时均会询问
+put $FILE_NAME
+#将 local host 的文件送到 remote host
+bye
+EOF
+
+
+#crontab如下
+#yhj_inventory_ftp
+00 07 * * *  /bin/sh  /data/211/bin/yhj_count.sh > /dev/null 2>&1
+00 09 * * *  /bin/sh  /data/211/bin/yhj_merge.sh > /dev/null 2>&1
