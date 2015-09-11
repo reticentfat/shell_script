@@ -1,0 +1,22 @@
+#to的地址下写
+30 * * * * /usr/bin/rsync -vzrtopg -a --delete --progress 192.100.7.9::gateway_12580 /data/www/12580/
+#from的数据源写
+# rsyncd.conf - Example file, see rsyncd.conf(5)
+#
+
+# Set this if you want to stop rsync daemon with rc.d scripts
+pid file = /var/run/rsyncd.pid
+
+[gateway_12580]
+comment = 12580
+path = /data/www/12580
+uid = gateway
+hosts allow=192.100.7.11
+read only = yes
+
+[gateway_cms]
+comment = cms
+path = /data/www/cms
+uid = gateway
+hosts allow=192.100.7.11
+read only = yes
