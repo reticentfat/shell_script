@@ -271,7 +271,7 @@ bzip2 /home/oracle/etl/data/guangdong/month/fenkan/online/ZJYHJ_MMS/city/*
 
 
 ftp -i -v -n 172.16.24.23 <<EOF
-user gdadmin 1234qwer
+user g*n 1*r
 binary
 cd /month/fenkan/online/JKXGJ_SMS/
 mkdir $DEALMONTH
