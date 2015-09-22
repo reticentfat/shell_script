@@ -84,7 +84,7 @@ cd /home/oracle/etl/data/guangdong/month/fenkan/online/
 rm -Rf data/
 
 ##健康小管家
-wget -m -nH  "http://192.100.6.247:9999/data/dump/JKXGJ_SMS/users.txt.bz2"
+wget -m -nH  "http://192.100.6.247:9999/data/dump/YYZL_SMS/users.txt.bz2"
 cp /home/oracle/etl/data/guangdong/month/fenkan/online/data/dump/JKXGJ_SMS/users.txt.bz2 /home/oracle/etl/data/guangdong/month/fenkan/online/JKXGJ_SMS_users.txt.bz2
 
 bzcat /home/oracle/etl/data/guangdong/month/fenkan/online/JKXGJ_SMS_users.txt.bz2 | awk 'BEGIN{cates["1"] = "家庭保健"; cates["2"] = "吃出健康"; cates["3"] = "心灵之窗"; cates["4"] = "国学养生"; cates["5"] = "儿童保健"; cates["6"] = "青少年保健"; cates["7"] = "中老年保健"; cates["8"] = "女性常保健"; cates["9"] = "男性常保健"; cates["10"] = "孕妇保健"; cates["11"] = "产妇和婴幼儿保健"; cates["12"] = "大众保健";}{if($2=="020") print $1"|"$4"|"cates[$5]"|"$5}' | bzip2 > /home/oracle/etl/data/guangdong/month/fenkan/online/JKXGJ_SMS_users_guangdong.txt.bz2
