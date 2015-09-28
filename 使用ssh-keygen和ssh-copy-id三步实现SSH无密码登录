@@ -50,3 +50,49 @@ to make sure we haven't added extra keys that you weren't expecting.
 Default public key: ssh-copy-id uses ~/.ssh/identity.pub as the default public key file (i.e when no value is passed to option -i). Instead, I wish it uses id_dsa.pub, or id_rsa.pub, or identity.pub as default keys. i.e If any one of them exist, it should copy that to the remote-host. If two or three of them exist, it should copy identity.pub as default.
 The agent has no identities: When the ssh-agent is running and the ssh-add -L returns “The agent has no identities” (i.e no keys are added to the ssh-agent), the ssh-copy-id will still copy the message “The agent has no identities” to the remote-host’s authorized_keys entry.
 Duplicate entry in authorized_keys: I wish ssh-copy-id validates duplicate entry on the remote-host’s authorized_keys. If you execute ssh-copy-id multiple times on the local-host, it will keep appending the same key on the remote-host’s authorized_keys file without checking for duplicates. Even with duplicate entries everything works as expected. But, I would like to have my authorized_keys file clutter free.
+----------------------------------
+进行android开发经常需要登录远程ubuntu server服务器进行编译查看代码等，每次都需要输入密码，很烦人。
+
+使用 ssh-keygen和ssh-copy-id配置一下就可以无需输入密码直接登录服务器了。
+
+ssh-keygen 创建公钥和密钥。 
+ssh-copy-id 把本地主机的公钥复制到远程主机的authorized_keys文件上。
+ssh-copy-id 也会给远程主机的用户主目录（home）和~/.ssh, 和~/.ssh/authorized_keys设置合适的权限 。
+
+[html] view plaincopy
+user@machine:~$ ssh-keygen -t rsa  
+Generating public/private rsa key pair.  
+Enter file in which to save the key (/home/user/.ssh/id_rsa):   
+Enter passphrase (empty for no passphrase):   
+Enter same passphrase again:   
+Your identification has been saved in /home/user/.ssh/id_rsa.  
+Your public key has been saved in /home/user/.ssh/id_rsa.pub.  
+The key fingerprint is:  
+43:c6:7d:c4:9c:85:bd:8f:f0:5a:b7:8b:37:e6:e9:12 user@machine  
+The key's randomart image is:  
++--[ RSA 2048]----+  
+|           o.=.  |  
+|       . . .= .  |  
+|        + . .  . |  
+|       o   .. .  |  
+|        S    o o |  
+|         .   E+ o|  
+|             o...|  
+|            ...=.|  
+|             .*=o|  
++-----------------+  
+user@machine:~$   
+user@machine:~$ ls -l .ssh/  
+total 12  
+-rw------- 1 user user 1679 Sep  4 16:34 id_rsa  
+-rw-r--r-- 1 user user  393 Sep  4 16:34 id_rsa.pub  
+-rw-r--r-- 1 user user  222 Sep  3 13:03 known_hosts  
+user@machine:~$ ssh-copy-id -i .ssh/id_rsa.pub user@172.16.2.15  
+user@172.16.2.15's password:   
+Now try logging into the machine, with "ssh 'user@172.16.2.15'", and check in:  
+  
+  ~/.ssh/authorized_keys  
+  
+to make sure we haven't added extra keys that you weren't expecting.  
+  
+user@machine:~$ ssh user@172.16.2.15  
