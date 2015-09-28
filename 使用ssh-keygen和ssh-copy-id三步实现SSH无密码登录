@@ -1,0 +1,52 @@
+ssh-keygen  产生公钥与私钥对.
+ssh-copy-id 将本机的公钥复制到远程机器的authorized_keys文件中，ssh-copy-id也能让你有到远程机器的home, ~./ssh , 和 ~/.ssh/authorized_keys的权利
+
+第一步:在本地机器上使用ssh-keygen产生公钥私钥对
+jsmith@local-host$ [Note: You are on local-host here]
+jsmith@local-host$ ssh-keygen
+Generating public/private rsa key pair.
+Enter file in which to save the key (/home/jsmith/.ssh/id_rsa):[Enter key]
+Enter passphrase (empty for no passphrase): [Press enter key]
+Enter same passphrase again: [Pess enter key]
+Your identification has been saved in /home/jsmith/.ssh/id_rsa.
+Your public key has been saved in /home/jsmith/.ssh/id_rsa.pub.
+The key fingerprint is:
+33:b3:fe:af:95:95:18:11:31:d5:de:96:2f:f2:35:f9 jsmith@local-host
+第二步:用ssh-copy-id将公钥复制到远程机器中
+jsmith@local-host$ ssh-copy-id -i ~/.ssh/id_rsa.pub remote-host
+jsmith@remote-host's password:
+Now try logging into the machine, with "ssh 'remote-host'", and check in:
+.ssh/authorized_keys
+to make sure we haven't added extra keys that you weren't expecting.
+注意: ssh-copy-id 将key写到远程机器的 ~/ .ssh/authorized_key.文件中
+第三步: 登录到远程机器不用输入密码
+jsmith@local-host$ ssh remote-host
+Last login: Sun Nov 16 17:22:33 2008 from 192.168.1.2
+[Note: SSH did not ask for password.]
+jsmith@remote-host$ [Note: You are on remote-host here]
+ 
+常见问题：
+ssh-copy-id -u eucalyptus -i ~eucalyptus/.ssh/id_rsa.pub eucalyptus@remote_host
+上述是给eucalyptus用户赋予无密码登陆的权利
+[1]
+/usr/bin/ssh-copy-id: ERROR: No identities found
+使用选项 -i ，当没有值传递的时候或者 如果 ~/.ssh/identity.pub 文件不可访问（不存在）, ssh-copy-id 将显示上述的错误信息  （ -i选项会优先使用将ssh-add -L的内容）
+ 
+jsmith@local-host$ ssh-agent $SHELL
+jsmith@local-host$ ssh-add -L
+The agent has no identities.
+jsmith@local-host$ ssh-add
+Identity added: /home/jsmith/.ssh/id_rsa (/home/jsmith/.ssh/id_rsa)
+jsmith@local-host$ ssh-add -L
+ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAsJIEILxftj8aSxMa3d8t6JvM79DyBV
+aHrtPhTYpq7kIEMUNzApnyxsHpH1tQ/Ow== /home/jsmith/.ssh/id_rsa
+jsmith@local-host$ ssh-copy-id -i remote-host
+jsmith@remote-host's password:
+Now try logging into the machine, with "ssh 'remote-host'", and check in:
+.ssh/authorized_keys
+to make sure we haven't added extra keys that you weren't expecting.
+[Note: This has added the key displayed by ssh-add -L]
+[2] ssh-copy-id应注意的三个小地方
+Default public key: ssh-copy-id uses ~/.ssh/identity.pub as the default public key file (i.e when no value is passed to option -i). Instead, I wish it uses id_dsa.pub, or id_rsa.pub, or identity.pub as default keys. i.e If any one of them exist, it should copy that to the remote-host. If two or three of them exist, it should copy identity.pub as default.
+The agent has no identities: When the ssh-agent is running and the ssh-add -L returns “The agent has no identities” (i.e no keys are added to the ssh-agent), the ssh-copy-id will still copy the message “The agent has no identities” to the remote-host’s authorized_keys entry.
+Duplicate entry in authorized_keys: I wish ssh-copy-id validates duplicate entry on the remote-host’s authorized_keys. If you execute ssh-copy-id multiple times on the local-host, it will keep appending the same key on the remote-host’s authorized_keys file without checking for duplicates. Even with duplicate entries everything works as expected. But, I would like to have my authorized_keys file clutter free.
