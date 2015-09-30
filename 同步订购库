@@ -1,0 +1,95 @@
+---------url.php-------------------------
+<?php
+set_time_limit(0);
+define('PATH',dirname(__FILE__));    
+define('PATH_LOG',PATH.'/log');
+$cron_action = $_SERVER['argv']['1'];
+if(!empty($cron_action)){
+	
+function doinglog($log_info,$name){
+    $open_filename = fopen(PATH_LOG.'/'.$name.'.log','a+');
+    fwrite($open_filename,date('Y-m-j H:i:s').'|'.$log_info."\n");    
+    fclose($open_filename); 
+}
+
+function curl_url($url){
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_TIMEOUT,2);
+		curl_setopt($ch, CURLOPT_HEADER, false);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		$r  = curl_exec($ch);
+		curl_close($ch);
+		return $r;   
+}
+
+
+//判断文件是否存在
+if(file_exists(PATH.'/url/'.$cron_action.'.txt')){
+
+//执行文件
+$fp = fopen(PATH.'/url/'.$cron_action.'.txt',"r");
+$i = 0;
+while(!feof($fp)){	
+  $post_data = fgets($fp);
+
+  //没有了就弹出
+  if(empty($post_data)){	
+  continue;
+  }
+  //请求接口
+  $ret=curl_url(trim($post_data));
+  //记日志
+  $trim_post_data = trim($post_data);
+  $trim_ret = trim($ret);
+  $log_data =$trim_post_data.'|'.$trim_ret;
+  doinglog($log_data,$cron_action);
+  //输出下执行url和返回参数
+  echo $i++."\n";
+  usleep(1000);
+}
+fclose($fp);
+echo 'over';
+exit;
+}else{
+echo 'File not found!';
+exit;	
+} 
+
+}else{
+echo 'argv is empty!';
+exit;	
+}  
+?>
+-----------------update_mms_bj.php----------------------
+<?php
+define('PATH',dirname(__FILE__));    
+define('PATH_LOG',PATH.'/log');
+define('PATH_LOG_FILE',PATH_LOG.'/update_bjmms'.date('Y-m-j').'.log');
+
+function logfun($log_info){
+    $open_filename = fopen(PATH_LOG_FILE,'a+');
+    fwrite($open_filename,date('Y-m-j H:i:s').'|'.$log_info."\n");    
+    fclose($open_filename); 
+}
+$file_url = PATH.'/mm7_bj_pause_url_'.date('Y-m-d',time()).'.txt';
+if(file_exists($file_url)){
+$fp = fopen($file_url,"r");
+while(!feof($fp)){	
+  $url = fgets($fp);
+  if(substr($url,0,1) == '')
+  continue;
+  $trim_url = trim($url);
+  $ret=file_get_contents($trim_url);
+  $log_data =$trim_url.'|'.$ret;
+  logfun($log_data);
+  echo $log_data."\n";
+}
+fclose($fp);
+echo 'over';
+exit;
+}else{
+echo 'File not found!';
+exit;	
+}   
+?>
