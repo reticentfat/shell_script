@@ -49,18 +49,20 @@ echo $(date)
 LOGP='/logs/out/mm7'
 
 d0=$1
+---------如果shell第一个参数为空字符串则定义d0为前一天时间戳格式yyyymmdd--------
 [ -z "$d0" ] && d0=$(date -v-1d +%Y%m%d)
 hm=$(date +%H%M)
 
 d1=$(date -v-1d -j $d0$hm +%Y%m%d)
 d2=$(date -v-2d -j $d0$hm +%Y%m%d)
-
+---------目录是否存在-------
 if [ ! -d $LOGP/$d0 ]; then
     # no need to erase the old status
     exit 0
 fi
 
 nf=$(echo $LOGP/$d0/*.mt $LOGP/$d0/*.out $LOGP/$d0/*.err | awk '{ print NF }')
+-------域等于3---------
 if [ $nf -eq 3 ]; then
     # no need to erase the old status
     exit 0
@@ -68,6 +70,7 @@ fi
 
 rm -f $LOGP/$d0/*.rp $LOGP/$d1/*.rp $LOGP/$d2/*.rp
 rm -f $LOGP/$d0/*.mt || exit 1
+---时间转化为月份日的格式例如Jan01
 d0str=$(date -j $d0$hm "+%b %d")
 
 for f in $LOGP/$d0/*.out $LOGP/$d0/*.err
@@ -75,7 +78,9 @@ do
     [ -f "$f" ] || continue
 
     awk -F',' "\$(NF-8) ~ /$d0str/ { next } { print }" $f > ${f}.$$ && \
+    -------$$为进程标识号(Process Identifier Number, PID)--------
     mv -f ${f}.$$ $f
+    -----------判断上一条语句是否成功--------
     [ $? -eq 0 ] || exit 1
 done
 
@@ -88,7 +93,9 @@ done
 
 for f in $LOGP/$d0/*.out
 do
+-----------测试f文件是否为非空白文档-----------
     [ -s "$f" ] || continue
+    --------只返回删除从尾部开始删除与.out匹配的最小部分，然后返回剩余部分--------
     hf=${f%.out}
 
     awk -F',' '{ print $27 $14 }' $f > ${hf}.hind
