@@ -1,0 +1,29 @@
+Syntax error: word unexpected (expecting ")")
+mkdir.sh
+
+执行 sh mkdir.sh xxx(参数)
+错误提示：mkdirs.sh: 9: Syntax error: word unexpected (expecting "do")
+
+ Syntax error: word unexpected (expecting ")")
+
+类似问题,案例详见
+
+http://ubuntuforums.org/archive/index.php/t-1130892.html
+
+http://forum.ubuntu.org.cn/viewtopic.php?f=21&t=416571
+
+
+
+总结几种问题:
+
+1. dos2unix xxx
+
+2. sh mkdir.sh 失败改成 直接运行  mkdir.sh
+
+3. 修改 #! /bin/sh 改成#! /bin/bash ，然后用执行 bash mkdir.sh xxx 
+
+4. 看看语法是否有错误, if 换行需要 ; 等
+
+5. 权限问题,试着cp 一份出来执行
+
+ls -l 看看拥有者
