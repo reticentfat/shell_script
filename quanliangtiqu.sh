@@ -109,3 +109,6 @@ else if ( FILENAME != CODE_DIR && !( $2$1 in d ) ){ print $2"|"$3"|"$4"|"$5"|"$6
 
 ##校验提取的APPCODE是否全
 cat /data/match/quanliang/${DEALDATE_2}_all_orderusers.txt | awk -F'|' '{print $6;}' | sort | uniq -c | sort -rn | awk '{print $2" "$1}' > /data/match/quanliang/${DEALDATE_2}_all_orderusers_check.txt
+##删除临时文件
+rm -f `ls *.*|egrep -v "(*.sh|filter_free_ok_y.txt|filter_free.txt|filter_qx_pay_y.txt|${DEALDATE_2}_all_orderusers.txt|${DEALDATE_2}_all_orderusers_check.txt)"`
+bzip2 ${DEALDATE_2}_all_orderusers.txt
