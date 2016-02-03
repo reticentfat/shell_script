@@ -95,3 +95,13 @@ bzcat /data/match/orig/20160131/snapshot.txt.bz2 henan_JKSX_SMS_11yuexinzeng12li
 ---12月---
 bzcat /data/match/orig/20151231/snapshot.txt.bz2 | awk -F'|' '$2=="10301085"&&$8=="0371"&&$5>="20151201000000"&&$5<"20160101000000" {print $1"|"$2 }'| bzip2 >/home/oracle/henan_JKSX_SMS_12yuexinzeng.txt.bz2
 bzcat /data/match/orig/20160131/snapshot.txt.bz2 henan_JKSX_SMS_12yuexinzeng.txt.bz2 | awk -F'[|^]' '{if((NF==20)&&$2=="10301085"&&$8=="0371"&&$3=="06") aa[$1$2]=$1$2;else if(($1$2 in aa))  print }' | bzip2 > henan_JKSX_SMS_12yuexinzeng01liucun.txt.bz2
+-------2月留存从plsql查-----------
+select count(distinct n.mobile_sn ) 
+
+from new_wireless_subscription n, mobilenodist m 
+where substr(n.mobile_sn, 1, 7) = m.beginno 
+and n.appcode ='10301085'
+and n.mobile_sub_state ='3' 
+and m.province = '河南' 
+and n.prior_time < to_date('2016-01-01', 'yyyy-mm-dd')
+and n.prior_time >= to_date('2015-12-01', 'yyyy-mm-dd')
