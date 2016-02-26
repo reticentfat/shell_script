@@ -30,3 +30,4 @@ sed -n 810001,1017052p shbb_jihuo.txt>shbb_jihuo_0229.txt
 cat shbb_jihuo_0227.txt 0227_jihuo1.txt > 0227_jihuo.txt
 cat shbb_jihuo_0229.txt 0229_jihuo1.txt > 0229_jihuo.txt
 scp  0227_jihuo.txt 0229_jihuo.txt shbb_jihuo_0228.txt gateway@192.100.7.25:/data/www/sjyl_sjsj_url/url/
+cat 0226_jihuo.log  |grep  '\"errcode\"\: \"12\"' >1.txt
