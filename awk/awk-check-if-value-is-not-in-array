@@ -1,0 +1,17 @@
+file2.txt
+_rlnNrOfSignificantSamples|#24
+_rlnMaxValueProbDistribution|#25
+300.000000|25425.970703|25000.669922|6.050000|2.000000|56.000000|0.277790|79096.000000|0.100000|000001@Particles/Micrographs/006_particles.mrcs|453.000000|604.000000|1.000000|0.859382|Micrographs/006.mrc|1|-3.469177|-3.469177|0.000000|0.000000|-82.345885|23|9475.876495|1|0.988689
+300.000000|25425.970703|25000.669922|6.050000|2.000000|56.000000|0.277790|79096.000000|0.100000|000002@Particles/Micrographs/006_particles.mrcs|431.000000|428.000000|1.000000|0.806442|Micrographs/006.mrc|1|-1.469177|-3.469177|0.000000|0.000000|87.654115|22|9412.959278|1|1.000000
+file1.txt
+1
+2
+5
+7
+10
+I want to read numbers from file1 into array, then:
+
+print header from file2
+print lines from file2, if values in field $22 are NOT in array (in example earlier its values are 23 and 22)
+ awk -F'|' 'NR==FNR{a[$1];next}NF<3||($22 in a)  ' file1.txt file2.txt >wy.txt
+ ---http://stackoverflow.com/questions/17994025/awk-check-if-value-is-not-in-array?answertab=oldest#tab-top
