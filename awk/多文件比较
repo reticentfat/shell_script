@@ -1,0 +1,15 @@
+	数据统计	提取江西8月份健康管家, 生活播报退订用户明细数据
+	字段:	地市, 手机号码, 业务名称, 开通时间, 取消时间
+	维度:	江西
+	周期:	8月1-31日
+
+	bzcat /home/oracle/etl/data/data/snapshot/archives.txt.bz2 | awk -F '^' -v start_date=2012-08-01 -v end_date=2012-09-01 '{ if ( $3=="0791" && ($6=="10301051" || $6=="10301052" || $6~/^2/) && $8 >= start_date && $8 < end_date  ) print $2","$6","$7","$8","$5; }'  > /home/oracle/jiangxi_cancel.txt
+
+	awk -F',' -v NODIST_DIR=/data0/match/orig/profile/nodist.tsv -v OPTCODE_DIR=/home/oracle/etl/data/opt_code_all.txt '{
+	if(FILENAME == NODIST_DIR){split($0,tmp,"|");if(tmp[5]=="791"){p=tmp[1];c=tmp[2];m=tmp[4];nodist[m]=p","c;}}
+	else if(FILENAME == OPTCODE_DIR) optcode[$1] = $5","$2;
+	else{nod=substr($1,1,7);if($2 in optcode && nod in nodist){split(nodist[nod],t1,",");province=t1[1];city=t1[2];
+	split(optcode[$2],t2,",");optcost=t2[1];jfcode=t2[2];
+	if(optcost=="营养博士短信") optcost="健康顾问"; else if(optcost=="营养管家短信") optcost="健康助理";
+	print $1","optcost","city","$3","$4","jfcode;}}
+	}' /data0/match/orig/profile/nodist.tsv /home/oracle/etl/data/opt_code_all.txt /home/oracle/jiangxi_cancel.txt > /home/oracle/jiangxi_cancel_style.txt
