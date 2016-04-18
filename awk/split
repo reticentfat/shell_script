@@ -1,0 +1,2 @@
+---25上
+cat /data/match/cmpp/20160410/outputumessage_006_wuxian_20160410_cmpp.mt | awk -F',' '{ split($1,tmp,":"); print substr(tmp[4],2,14)"^"$15"^"$10"^"$14"^"$(NF-2)"^"$NF}' | head -12
