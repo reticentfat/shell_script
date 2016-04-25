@@ -1,3 +1,14 @@
+                           
+LOAD DATA  INFILE 'F:\work\jilin_shbb_ci_dttime.txt' 
+BADFILE 'F:\work\dingzhi.txt.bad'
+truncate INTO TABLE  jf_1
+FIELDS TERMINATED BY '	' OPTIONALLY ENCLOSED BY '"' 
+ TRAILING NULLCOLS
+(opt_code,mobile,cartype,subtime,opttime,serial,job_num,biz_code
+ )
+
+  　
+2016-4-6	13403732821	当月生效	新乡
 select A.opt_code,
        A.mobile,
        A.cartype,
