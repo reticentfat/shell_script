@@ -43,3 +43,52 @@
 	left join new_wireless_subscription t on j.mobile = t.mobile_sn
 								 and t.appcode in ('10511004', '10511024')
 								 and t.mobile_sub_state = 3 where t.mobile_sn is not null
+	11.	数据统计	为做12月短信宣传，请协助剔除已定制车务提醒或汽车宝典的用户号码
+	匹配附件号码截至11月30日定制《车主业务》和《汽车宝典》业务的情况
+	在号码后面增加字段： 是否定制车主业务    是否定制汽车宝典业务
+
+	select distinct A.mobile,
+					A.isWZ,
+					B.isQCBD
+	  from (select j.mobile,
+				   case
+					 when f.mobile_sn is null then
+					  '未定制车主业务'
+					 else
+					  '已定制车主业务'
+				   end isWZ
+			  from jf_1 j
+			  left join fswz f on j.mobile = f.mobile_sn
+							  and f.mobile_sub_state = 3) A,
+		   (select j.mobile,
+				   case
+					 when t.mobile_sn is null then
+					  '未定制汽车宝典'
+					 else
+					  '已定制汽车宝典'
+				   end isQCBD
+			  from jf_1 j
+			  left join new_wireless_subscription t on j.mobile = t.mobile_sn
+												   and t.appcode = '10511005'
+												   and t.mobile_sub_state = 3) B
+	 where A.mobile = B.mobile
+
+	
+	awk -F'\t' '{if($2=="已定制车主业务"&&$3=="已定制汽车宝典") print}' gdcz.txt > gdcz_wz_bd.txt
+	awk -F'\t' '{if($2=="已定制车主业务"&&$3=="未定制汽车宝典") print}' gdcz.txt > gdcz_wz.txt
+	awk -F'\t' '{if($2=="未定制车主业务"&&$3=="已定制汽车宝典") print}' gdcz.txt > gdcz_bd.txt
+	awk -F'\t' '{if($2=="未定制车主业务"&&$3=="未定制汽车宝典") print}' gdcz.txt > gdcz_both_not.txt
+	
+	
+	验证：
+	select j.mobile, t.mobile_sn
+	from jf_1 j
+	left join new_wireless_subscription t on j.mobile = t.mobile_sn
+								 and t.appcode = '10511005'
+								 and t.mobile_sub_state = 3 where t.mobile_sn is not null
+
+	select j.mobile, f.mobile_sn
+	from jf_1 j
+	left join fswz f on j.mobile = f.mobile_sn
+					 and f.mobile_sub_state = 3 where f.mobile_sn is not null
+								 
