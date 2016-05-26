@@ -1,0 +1,1 @@
+awk -F',' '{if( $1 in jk ){ split( jk[$1], tmp, "," ); unsubtime = tmp[3]; if( $3 > unsubtime ) jk[$1] = $0; } else { jk[$1] = $0; } } END{ for( j in jk ) print jk[j]; }' jkxgj.txt | unix2dos > jkxgj_ret.txt
