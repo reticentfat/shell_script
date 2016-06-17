@@ -1,0 +1,23 @@
+从192.100.7.27的oracle账户向gateway@192.100.7.13免密码scp
+在27上ssh-copy-id gateway@192.100.7.13
+http://unix.stackexchange.com/questions/182483/scp-without-password-prompt-using-different-username
+What you want are ssh-key pairs, these create 'trusted networks' that allow for password-less authentication:
+
+On your client (server1):
+
+[user@server1]# ssh-keygen -t rsa -b 2048
+Generating public/private rsa key pair.
+Enter file in which to save the key (/root/.ssh/id_rsa): # Hit Enter
+Enter passphrase (empty for no passphrase): # Hit Enter
+Enter same passphrase again: # Hit Enter
+Your identification has been saved in /root/.ssh/id_rsa.
+Your public key has been saved in /root/.ssh/id_rsa.pub.
+Now copy your public key to your remote server (server2):
+
+ssh-copy-id user2@server2
+[OR]
+cat ~/.ssh/id_rsa.pub | ssh user2@server2 "mkdir -p ~/.ssh \
+    && cat >>  ~/.ssh/authorized_keys"
+Now when you run the scp (or any other ssh) command you shouldn't be prompted for a password:
+
+scp file user2@server2:/drop/location
