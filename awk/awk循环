@@ -1,0 +1,1 @@
+awk '{split($1,a,".");split($2,b,".");for(i=a[3];i<=b[3];i++){for(j=a[4];j<=b[4];j++){print a[1]"."a[2]"."i"."j}}}' file.txt
