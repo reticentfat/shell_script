@@ -1,0 +1,1 @@
+sed -i '' -e 's/651744930@qq.com/13451993304@139.com/g;s/13581960272@139.com/15862533577@139.com/g' /data/211/bin/{weizhang,dianbo,qianxiang}_monitor_sedMail.php
