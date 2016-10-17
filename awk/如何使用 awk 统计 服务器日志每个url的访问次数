@@ -1,0 +1,12 @@
+日志格式为：
+
+  
+117.72.201.7 - - [30/Jun/2012:00:04:09 +0800] "GET /news/3186 HTTP/1.1" 200 19048 "http://www.xxx.com/xxxx/xxx" "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.106 Safari/535.2" -
+用sed删除搜索引擎的访问记录；
+参照这个问题@用SHELL如何统计排序WEB ACCESS LOG
+
+  
+sed "/Baiduspider/d;/Googlebot/d;/Sogou web spider/d;" xxx.log|awk -F' ' '{print $7}'|sort | uniq -c | sort -k1,2 -nr > times.txt
+sed "/Baiduspider/d;/Googlebot/d;/Sogou web spider/d;" xxx.log|awk '{url[$7]++} END {for (k in url) {print url[k],k}}'|sort -rn > times.txt
+
+测试过有数组的效率比sort、uniq要高10倍，感兴趣的可以试试。
