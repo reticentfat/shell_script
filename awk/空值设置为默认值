@@ -1,3 +1,42 @@
+#!/bin/sh
+
+LOGP='/logs/out/mm7'
+NODIST='/logs/out/dana/data/nodist/nodist.tsv'
+
+cd $LOGP
+
+for file in $@
+do
+    if [ ! -f "${file}.rp" ]; then
+        continue
+    fi
+
+    if [ ! -f "${file}.mt" ]; then
+        touch "${file}.mt"
+    fi
+
+    gawk -F'[,|]' -v filep=$file '
+BEGIN {
+    ofile = filep ".out"
+    efile = filep ".err"
+    mfile = filep ".mid"
+}
+FILENAME ~ /tsv$/ {
+    ps[$4] = $5;
+    ds[$4] = $3;
+}
+FILENAME ~ /rp$/ {
+    phone = $4
+    sub(/^+/,"",phone)
+    sub(/^86/,"",phone)
+    key = $2 phone
+    if (key in reports) {
+        print "REP, " $0 >> efile
+    } else {
+        reports[key] = $0
+    }
+    next
+}
 FILENAME ~ /mt$/ {
     key = $27 $14
     if (key in reports) {
@@ -21,4 +60,15 @@ FILENAME ~ /mt$/ {
     }
     next
 }
-END
+END {
+    for (key in reports) {
+        print "NO, " reports[key] >> efile
+    }
+}' $NODIST "${file}.rp" "${file}.mt"
+    [ $? -eq 0 ] || continue
+    if [ ! -f "${file}.mid" ]; then
+        touch "${file}.mid"
+    fi
+    mv -f "${file}.mid" "${file}.mt"
+    rm -f "${file}.rp"
+done
