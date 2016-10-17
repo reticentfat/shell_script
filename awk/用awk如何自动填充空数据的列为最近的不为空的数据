@@ -1,0 +1,19 @@
+vi 1.txt
+
+name1,1,21,address1
+name2,0,,
+name3,0,,
+name4,1,30,address4
+name5,0,24,address5
+name6,1,,
+name7,1,29,address7
+
+awk -F',' 'BEGIN{OFS=","}{if($1!=""&&$2!=""&&$3!=""&&$4!=""){a=$1;b=$2;c=$3;d=$4}else{if($1==""){$1=a;}if($2==""){$2=b;}if($3==""){$3=c;}if($4==""){$4=d}}print;}' 1.txt
+
+name1,1,21,address1
+name2,0,21,address1
+name3,0,21,address1
+name4,1,30,address4
+name5,0,24,address5
+name6,1,24,address5
+name7,1,29,address7
