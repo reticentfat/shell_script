@@ -1,0 +1,24 @@
+FILENAME ~ /mt$/ {
+    key = $27 $14
+    if (key in reports) {
+        # deside province and region id
+        p7 = substr($14,1,7)
+        p8 = substr($14,1,8)
+        if (p7 in ps) {
+            p = ps[p7]
+            d = ds[p7]
+        } else if (p8 in ps) {
+            p = ps[p8]
+            d = ds[p8]
+        } else {
+            p = d = "000"
+        }
+
+        print $0 "," p "," d "," reports[key] >> ofile
+        delete reports[key]
+    } else {
+        print $0 >> mfile
+    }
+    next
+}
+END
