@@ -1,3 +1,5 @@
+#and(v1, v2 [, …])
+#Return the bitwise AND of the arguments. There must be at least two.
 gawk -F\| 'BEGIN{OFS="|";v_date=substr("'$DEALDATE'",1,4)"-"substr("'$DEALDATE'",5,2)"-"substr("'$DEALDATE'",7,2)}{
   if(FILENAME=="'$CODE_NODIST'") 
   {
