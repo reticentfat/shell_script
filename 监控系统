@@ -1,0 +1,250 @@
+实时请求监控日志生成及推送模块
+#! /usr/bin/sh
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/gateway/;
+DEALDATE=`date -d "0 day ago" +"%Y%m%d"`
+DEALDATE1=`date -d "1 day ago" +"%Y%m%d"`
+DEALDATE_23H=`date -d "1 hour ago" +"%H"`
+DEALDATETIME=`date -d "1 hour ago" +%Y%m%d%H00`
+cd /data/proxy
+if [ ! -d "${DEALDATE}" ]; then
+   mkdir ${DEALDATE}   
+fi
+echo "mkdir_done"
+if [ ${DEALDATE_23H} -eq 23 ];then
+zcat /data/logs/bossproxy/appproxy.log-${DEALDATE}*.gz | grep 'BIP2B247,'| awk -F':' -v CODE_TIME=${DEALDATE_23H} 'substr($1,8,2)==CODE_TIME{print $0}'| awk -F',' -v CODE_DIR=${DEALDATE1} '{ print CODE_DIR""substr($10,9,2)","$4","$7","$8","$10","$11","$14",12580"}' >/data/proxy/${DEALDATE1}/boss_sys_${DEALDATETIME}.txt
+zcat /data/logs/bossproxy/bossproxy.log${DEALDATE}*.gz  | grep  'BIP2B247,' |  awk -F':' -v CODE_TIME=${DEALDATE_23H} 'substr($1,8,2)==CODE_TIME{print $0}'| awk -F',' -v CODE_DIR=${DEALDATE1} '$8=="06"||$8=="07"||$8=="02"||$8=="99"{ print CODE_DIR""substr($1,8,2)","$4","$7","$8","$10","$11","$14",BOSS"}' >> /data/proxy/${DEALDATE1}/boss_sys_${DEALDATETIME}.txt
+zcat /data/logs/bossproxy/bossproxy.log-${DEALDATE}*.gz | grep 'BIP2B248,' |   awk -F':' -v CODE_TIME=${DEALDATE_23H} 'substr($1,8,2)==CODE_TIME{print $0}'| awk -F',' -v CODE_DIR=${DEALDATE1} '$8=="06"||$8=="07"||$8=="02"||$8=="99"{ print CODE_DIR""substr($1,8,2)","$5","$7","$8","$9","$14","$18",BOSS"}'  >> /data/proxy/${DEALDATE1}/boss_sys_${DEALDATETIME}.txt
+cat /data/proxy/${DEALDATE1}/boss_sys_${DEALDATETIME}.txt | awk -F',' '{print $1,$8,$6,$3,$4,$7}' | sort | uniq -c | sort -rn  | awk '{print $2"|"$3"|"$4"|"$5"|"$6"|"$7"|"$1}' > /data/proxy/${DEALDATE1}/boss_sys_wc_tmp1_${DEALDATETIME}.txt
+awk -F'|' -v CODE_DIR=/home/gateway/dic/nodist_umgstat_gbk.txt '{ if(FILENAME==CODE_DIR) d[$5]=$1 ; else if( $3 in d  ) print $1"|"$2"|"d[$3]"|"$4"|"$5"|"$6"|"$7;  }' /home/gateway/dic/nodist_umgstat_gbk.txt  /data/proxy/${DEALDATE1}/boss_sys_wc_tmp1_${DEALDATETIME}.txt>/data/proxy/${DEALDATE1}/boss_sys_wc_tmp2_${DEALDATETIME}.txt
+awk -F'|' -v CODE_DIR=/home/gateway/dic/opt_code_all.txt '{ if(FILENAME==CODE_DIR) d[$2]=$5 ; else if($4 in d  ) print $1"|"$2"|"$3"|"d[$4]"|"$5"|"$6"|"$7 }' /home/gateway/dic/opt_code_all.txt  /data/proxy/${DEALDATE1}/boss_sys_wc_tmp2_${DEALDATETIME}.txt>/data/proxy/${DEALDATE1}/boss_sys_wc_${DEALDATETIME}.txt
+iconv -f gbk -t utf-8 /data/proxy/${DEALDATE1}/boss_sys_wc_${DEALDATETIME}.txt > /data/proxy/${DEALDATE1}/boss_sys_wc_utf-8_${DEALDATETIME}.txt
+scp /data/proxy/${DEALDATE1}/boss_sys_wc_utf-8_${DEALDATETIME}.txt gateway@192.100.7.13:/data/www/12580/Monitor/proxylog
+else
+cat /data/logs/bossproxy/appproxy.log | grep 'BIP2B247,'| awk -F':' -v CODE_TIME=${DEALDATE_23H} 'substr($1,8,2)==CODE_TIME{print $0}'| awk -F',' -v CODE_DIR=${DEALDATE} '{ print CODE_DIR""substr($10,9,2)","$4","$7","$8","$10","$11","$14",12580"}' >/data/proxy/${DEALDATE}/boss_sys_${DEALDATETIME}.txt
+cat /data/logs/bossproxy/bossproxy.log  | grep  'BIP2B247,' |  awk -F':' -v CODE_TIME=${DEALDATE_23H} 'substr($1,8,2)==CODE_TIME{print $0}'| awk -F',' -v CODE_DIR=${DEALDATE} '$8=="06"||$8=="07"||$8=="02"||$8=="99"{ print CODE_DIR""substr($1,8,2)","$4","$7","$8","$10","$11","$14",BOSS"}' >> /data/proxy/${DEALDATE}/boss_sys_${DEALDATETIME}.txt
+cat /data/logs/bossproxy/bossproxy.log | grep 'BIP2B248,' |   awk -F':' -v CODE_TIME=${DEALDATE_23H} 'substr($1,8,2)==CODE_TIME{print $0}'| awk -F',' -v CODE_DIR=${DEALDATE} '$8=="06"||$8=="07"||$8=="02"||$8=="99"{ print CODE_DIR""substr($1,8,2)","$5","$7","$8","$9","$14","$18",BOSS"}'  >> /data/proxy/${DEALDATE}/boss_sys_${DEALDATETIME}.txt
+cat /data/proxy/${DEALDATE}/boss_sys_${DEALDATETIME}.txt | awk -F',' '{print $1,$8,$6,$3,$4,$7}' | sort | uniq -c | sort -rn  | awk '{print $2"|"$3"|"$4"|"$5"|"$6"|"$7"|"$1}' > /data/proxy/${DEALDATE}/boss_sys_wc_tmp1_${DEALDATETIME}.txt
+awk -F'|' -v CODE_DIR=/home/gateway/dic/nodist_umgstat_gbk.txt '{ if(FILENAME==CODE_DIR) d[$5]=$1 ; else if( $3 in d  ) print $1"|"$2"|"d[$3]"|"$4"|"$5"|"$6"|"$7;  }' /home/gateway/dic/nodist_umgstat_gbk.txt  /data/proxy/${DEALDATE}/boss_sys_wc_tmp1_${DEALDATETIME}.txt>/data/proxy/${DEALDATE}/boss_sys_wc_tmp2_${DEALDATETIME}.txt
+awk -F'|' -v CODE_DIR=/home/gateway/dic/opt_code_all.txt '{ if(FILENAME==CODE_DIR) d[$2]=$5 ; else if($4 in d  ) print $1"|"$2"|"$3"|"d[$4]"|"$5"|"$6"|"$7 }' /home/gateway/dic/opt_code_all.txt  /data/proxy/${DEALDATE}/boss_sys_wc_tmp2_${DEALDATETIME}.txt>/data/proxy/${DEALDATE}/boss_sys_wc_${DEALDATETIME}.txt
+iconv -f gbk -t utf-8 /data/proxy/${DEALDATE}/boss_sys_wc_${DEALDATETIME}.txt > /data/proxy/${DEALDATE}/boss_sys_wc_utf-8_${DEALDATETIME}.txt
+scp /data/proxy/${DEALDATE}/boss_sys_wc_utf-8_${DEALDATETIME}.txt gateway@192.100.7.13:/data/www/12580/Monitor/proxylog
+
+
+
+
+
+实时请求监控导入模块
+class RealtimesAction extends Action {
+	public function import(){
+			$model = M("realtime");
+			$nowtime = date("Y-m-d H:i:s");
+			$times = date('YmdH',strtotime("$nowtime-1 hour"));
+			$filename = "/data/www/12580/Monitor/proxylog/boss_sys_wc_utf-8_".$times."00.txt";
+			if(is_file($filename)){
+				$content = file($filename);   		
+				for($i=0;$i<count($content);$i++){
+					$val = explode("|",$content[$i]);
+					$str = "INSERT INTO think_realtime SET times='$val[0]',sponsor='$val[1]',city='$val[2]',name='$val[3]',type='$val[4]',result='$val[5]',number='$val[6]'";
+					$model->query($str);
+				}
+		}
+	}
+}
+
+
+前向业务下发量与提交量的统计及比较
+
+
+#!/bin/sh
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/gateway/;
+export PATH
+DEALDATE=`date -v-0d  +%Y%m%d`
+DEALDATETIME=`date -v-2H  +%Y%m%d%H00`
+DEALDATE_1=`date -v-1d  +%Y%m%d`
+DEALDATE_2=`date -v-0d  +%Y%m%d` 
+DEALDATE_3=`date -v-2d  +%Y%m%d`
+echo ${DEALDATE}
+echo ${DEALDATETIME}
+#DEALDATE=`date -v-${AGO_DAY1}d -v${AGO_DAY2}H  +%Y%m%d%H`
+#TODAYTIME=`date -v-${AGO_DAY1}d -v${AGO_DAY2}H  +%Y%m%d%H%M%S`
+#DATEYEAR=`date -v-${AGO_DAY2}d  +%Y`
+
+DIC_baoyue="/data/211/dictionary/monitor_dictionary_baoyue.txt"
+DIC_dianbo="/data/211/dictionary/monitor_dictionary_dianbo.txt"
+DIC_weizhang="/data/211/dictionary/monitor_dictionary_weizhang.txt"
+cd /data/monitor
+awk -F',' -v CODE_DIR=dump_weizhang_Bycity_${DEALDATE_2}.txt '{if(FILENAME==CODE_DIR) aa[$1$2$3]=$4;else if(($1$2$3 in aa))  print $0","aa[$1$2$3]","sqrt(($4-aa[$1$2$3])*($4-aa[$1$2$3]))}' dump_weizhang_Bycity_${DEALDATE_2}.txt weizhang_${DEALDATE_2}_allcount.txt > weizhang_tmp1_${DEALDATE_2}.txt
+awk -F',' -v CODE_DIR=/data/211/dictionary/monitor_dictionary_weizhang.txt '{ if(FILENAME==CODE_DIR) d[$1]=$2 ; else if( $1 in d  ) print d[$1]"|"$1"|"$2"|"$3"|"$4"|"$5"|"$6;  }' /data/211/dictionary/monitor_dictionary_weizhang.txt  weizhang_tmp1_${DEALDATE_2}.txt>weizhang_tmp2_${DEALDATE_2}.txt
+awk -F'|' -v CODE_DIR=/data/wuying/PKFILTER_DIC/nodist.tsv '{ if(FILENAME==CODE_DIR) d[$5$3]=$1"|"$2 ; else if($3$4 in d  ) print $1"|"d[$3$4]"|"$5"|"$6"|"$7 }' /data/wuying/PKFILTER_DIC/nodist.tsv  weizhang_tmp2_${DEALDATE_2}.txt>weizhang_tmp3_${DEALDATE_2}.txt
+cat weizhang_tmp3_${DEALDATE_2}.txt | sort -t '|' -k2,2 | awk -F'|' 'BEGIN{print "业务名称|省份|城市|下发数量|在线用户量|差异";}{ print $0}'  > weizhang_final_bycity_${DEALDATE_2}.txt
+awk -F',' 'BEGIN{print "APPCODE,业务名称,下发数量,在线用户量,差异";}{if(NF==2) aa[$1]=$2;else if(NF==3&&($1 in aa))  print $0","aa[$1]","sqrt(($3-aa[$1])*($3-aa[$1]))}' dump_weizhang_${DEALDATE_1}.txt xiafa_${DEALDATE_1}0600_to_${DEALDATE_2}0500_count_weizhang.txt > weizhang_final_${DEALDATE_1}.txt
+#awk -F',' -v CODE_DIR=xiafa_201607270600_to_201607280500_count_dianbo.txt 'BEGIN{print "APPCODE,name,t-1,t-2,gap";}{if(FILENAME==CODE_DIR) aa[$1]=$3;else if(FILENAME != CODE_DIR&&($1 in aa))  print $0","aa[$1]","sqrt(($3-aa[$1])*($3-aa[$1]))}' xiafa_201607270600_to_201607280500_count_dianbo.txt xiafa_201607280600_to_201607290500_count_dianbo.txt > dianbo_final.txt
+awk -F',' -v CODE_DIR=xiafa_${DEALDATE_3}0600_to_${DEALDATE_1}0500_count_dianbo.txt 'BEGIN{print "APPCODE,业务名称,昨天点播量,前天点播量,差异";}{if(FILENAME==CODE_DIR) aa[$1]=$3;else if(FILENAME != CODE_DIR&&($1 in aa))  print $0","aa[$1]","sqrt(($3-aa[$1])*($3-aa[$1]))}' xiafa_${DEALDATE_3}0600_to_${DEALDATE_1}0500_count_dianbo.txt xiafa_${DEALDATE_1}0600_to_${DEALDATE_2}0500_count_dianbo.txt > dianbo_final_${DEALDATE_1}.txt
+wget -N "http://192.100.6.31:9999/data/sort/count.txt"
+sed 's/ //g' count.txt > count1.txt
+awk -F',' -v CODE_DIR=count1.txt '{if(FILENAME==CODE_DIR) aa[$1]=$2;else if(FILENAME != CODE_DIR&&($1 in aa))  print $0","aa[$1]","sqrt(($2-aa[$1])*($2-aa[$1]))}' count1.txt xiafa_${DEALDATE_1}0600_to_${DEALDATE_2}0500_count_baoyue.txt | sort -rn -k2 > baoyue_tmp_${DEALDATE_1}.txt
+awk -F',' -v CODE_DIR=${DIC_baoyue} 'BEGIN{print "SERVCODE,业务名称,下发数量,DUMP量,差异";}{if(FILENAME==CODE_DIR) aa[$3]=$2;else if(FILENAME != CODE_DIR&&($1 in aa))  print $1","aa[$1]","$2","$3","$4}' ${DIC_baoyue} baoyue_tmp_${DEALDATE_1}.txt > baoyue_final_${DEALDATE_1}.txt
+
+
+违章业务监控邮件的发送
+
+
+<?php
+	/**
+	* @desc 违章监控 每天发送 
+	* @author wangyuan
+	* @date 2016-07-29 17:35
+	*
+	*/
+
+	error_reporting(E_ALL);
+	define('SERVER_ROOT', dirname(__FILE__).'/');
+	
+	$end_time = date("Y-m-d",time());
+	$start_time = date("Y-m-d" ,time()-3600*72);
+
+	//$fileName = "general.txt";
+	$file = $_SERVER['argv'][1];
+	$fileName = basename($file); 
+	//$file = SERVER_ROOT . $fileName;
+	if( !file_exists($file)) {
+		exit;
+	}
+
+	//把整个文件读入一个变量	
+	$fp = fopen($file, "r");	
+	$read = fread($fp, filesize($file));
+
+	//base64编码
+	$read = base64_encode($read);
+
+
+	//把这个长字符串切成由每行76个字符组成的小块
+	$read = chunk_split($read);
+	
+	$boundary = uniqid();
+
+	//建立邮件的主体
+	$body = "--$boundary\n";
+	$body .= "Content-Type:application/octet-stream;name=\"".$fileName;
+	$body .= "\"\nContent-Transfer-Encoding:BASE64\n";
+	$body .= "Content-Disposition:attachment;filename=\"".$fileName;
+	$body .= "\"\n\n".$read."\n\n";
+	$body .= "--$boundary--\n\n";
+
+	$headers = "From:wangyuan@umessage.com.cn\n";
+	$headers .= "Cc:cuiyou@umessage.com.cn,qinlu@umessage.com.cn,liuyh@umessage.com.cn,wuying@umessage.com.cn,183644346@qq.com\n";
+	$headers .= "Content-type:multipart/mixed;boundary=\"$boundary\"";
+	$subject = iconv("UTF-8", "gbk", "违章监控邮件---".$end_time."日报告");
+	$to = "13581960272@139.com,283049708@qq.com,651744930@qq.com,106581221@qq.com,zhouli3611@163.com,421807468@qq.com,122102949@qq.com";
+	var_dump(mail($to, $subject,$body,$headers));
+
+?>
+
+
+前向非违章包月业务监控邮件的发送
+
+<?php
+	/**
+	* @desc 前向监控 每天发送 
+	* @author wangyuan
+	* @date 2016-07-29 17:35
+	*
+	*/
+
+	error_reporting(E_ALL);
+	define('SERVER_ROOT', dirname(__FILE__).'/');
+	
+	$end_time = date("Y-m-d",time());
+	$start_time = date("Y-m-d" ,time()-3600*72);
+
+	//$fileName = "general.txt";
+	$file = $_SERVER['argv'][1];
+	$fileName = basename($file); 
+	//$file = SERVER_ROOT . $fileName;
+	if( !file_exists($file)) {
+		exit;
+	}
+
+	//把整个文件读入一个变量	
+	$fp = fopen($file, "r");	
+	$read = fread($fp, filesize($file));
+
+	//base64编码
+	$read = base64_encode($read);
+
+
+	//把这个长字符串切成由每行76个字符组成的小块
+	$read = chunk_split($read);
+	
+	$boundary = uniqid();
+
+	//建立邮件的主体
+	$body = "--$boundary\n";
+	$body .= "Content-Type:application/octet-stream;name=\"".$fileName;
+	$body .= "\"\nContent-Transfer-Encoding:BASE64\n";
+	$body .= "Content-Disposition:attachment;filename=\"".$fileName;
+	$body .= "\"\n\n".$read."\n\n";
+	$body .= "--$boundary--\n\n";
+
+	$headers = "From:wangyuan@umessage.com.cn\n";
+	$headers .= "Cc:cuiyou@umessage.com.cn,qinlu@umessage.com.cn,liuyh@umessage.com.cn,wuying@umessage.com.cn,183644346@qq.com\n";
+	$headers .= "Content-type:multipart/mixed;boundary=\"$boundary\"";
+	$subject = iconv("UTF-8", "gbk", "前向监控邮件---".$end_time."日报告");
+	$to = "13581960272@139.com,283049708@qq.com,651744930@qq.com,106581221@qq.com,zhouli3611@163.com,421807468@qq.com,122102949@qq.com";
+	var_dump(mail($to, $subject,$body,$headers));
+
+?>
+
+
+前向点播业务监控邮件的发送
+
+<?php
+	/**
+	* @desc 点播监控 每天发送 
+	* @author wangyuan
+	* @date 2016-07-29 17:35
+	*
+	*/
+
+	error_reporting(E_ALL);
+	define('SERVER_ROOT', dirname(__FILE__).'/');
+	
+	$end_time = date("Y-m-d",time());
+	$start_time = date("Y-m-d" ,time()-3600*72);
+
+	//$fileName = "general.txt";
+	$file = $_SERVER['argv'][1];
+	$fileName = basename($file); 
+	//$file = SERVER_ROOT . $fileName;
+	if( !file_exists($file)) {
+		exit;
+	}
+
+	//把整个文件读入一个变量	
+	$fp = fopen($file, "r");	
+	$read = fread($fp, filesize($file));
+
+	//base64编码
+	$read = base64_encode($read);
+
+
+	//把这个长字符串切成由每行76个字符组成的小块
+	$read = chunk_split($read);
+	
+	$boundary = uniqid();
+
+	//建立邮件的主体
+	$body = "--$boundary\n";
+	$body .= "Content-Type:application/octet-stream;name=\"".$fileName;
+	$body .= "\"\nContent-Transfer-Encoding:BASE64\n";
+	$body .= "Content-Disposition:attachment;filename=\"".$fileName;
+	$body .= "\"\n\n".$read."\n\n";
+	$body .= "--$boundary--\n\n";
+
+	$headers = "From:wangyuan@umessage.com.cn\n";
+	$headers .= "Cc:cuiyou@umessage.com.cn,qinlu@umessage.com.cn,liuyh@umessage.com.cn,wuying@umessage.com.cn,183644346@qq.com\n";
+	$headers .= "Content-type:multipart/mixed;boundary=\"$boundary\"";
+	$subject = iconv("UTF-8", "gbk", "点播监控邮件---".$end_time."日报告");
+	$to = "13581960272@139.com,283049708@qq.com,651744930@qq.com,106581221@qq.com,zhouli3611@163.com,421807468@qq.com,122102949@qq.com";
+	var_dump(mail($to, $subject,$body,$headers));
