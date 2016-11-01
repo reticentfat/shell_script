@@ -1,0 +1,432 @@
+提取暂停数据模块（从前一天13点到当天0点）
+#!/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/gateway/bin:;
+export PATH
+LANG=zh_CN.UTF-8
+DEALDATE=`date -v-0d  +%Y%m%d`
+DEALDATETIME=`date -v-2H  +%Y%m%d%H00`
+DEALDATE_1=`date -v-1d  +%Y%m%d`
+DEALDATE_4=`date -v-1d  +%Y-%m-%d`
+DEALDATE_year=`date -v-1d  +%Y`
+DEALDATE_2=`date -v-0d  +%Y%m%d` 
+DEALDATE_3=`date -v-2d  +%Y%m%d`
+DEALDATE_Y=`date -v-1d  +%Y`
+DEALDATE_MD=`date -v-1d  +%m%d`
+CODE_DIR='/data/logs/shujuyzx/shbb_pause_active'
+LOG_DIR='/data/logs/archives/usa2/'
+LOG_DIR1='/data/logs/archives/usa2/'${DEALDATE_1}
+LOG_DIR2='/data/logs/archives/usa2/'${DEALDATE_2}
+echo ${DEALDATE}
+echo ${DEALDATETIME}
+echo ${LOG_DIR}
+cd ${CODE_DIR}
+if [ ! -d "${DEALDATE_1}" ]; then
+   mkdir ${DEALDATE_1}   
+fi
+echo "mkdir_done"
+cd ${DEALDATE_1}
+--------取暂停明细----
+bzcat ${LOG_DIR1}/usa2-access.log.${DEALDATE_1}1[3-9]00.bz2 ${LOG_DIR1}/usa2-access.log.${DEALDATE_1}2[0-3]00.bz2 ${LOG_DIR2}/usa2-access.log.${DEALDATE_2}0000.bz2| grep 'pause' | grep 'bosspause'| grep 'False'| awk -F'[ |]' 'BEGIN{OFS="=";} {print $3,$9;}' | awk -F'[=&]' 'BEGIN{OFS=",";}{print $1,$3,$5}' | sort -u> access1.txt
+awk -F',' '{
+    if (a[$2","$3] < $1) {
+        a[$2","$3]=$1
+    }
+} END {
+    for (i in a) {
+        print i "," a[i]
+    }
+}' access1.txt > access2.txt
+bzcat ${LOG_DIR1}/usa2-biz.log.${DEALDATE_1}1[3-9]00.bz2 ${LOG_DIR1}/usa2-biz.log.${DEALDATE_1}2[0-3]00.bz2 ${LOG_DIR2}/usa2-biz.log.${DEALDATE_2}0000.bz2|  grep 'bossactive' | awk -F'|' '$7~/^2/{print $1,$3,$6}' | awk 'BEGIN{OFS=",";}{print $3,$(NF-1),$NF}'  | sort -u> biz1.txt
+awk -F',' '{
+    if (a[$2","$3] < $1) {
+        a[$2","$3]=$1
+    }
+} END {
+    for (i in a) {
+        print i "," a[i]
+    }
+}' biz1.txt > biz2.txt
+awk -F',' -v CODE_DIR=access2.txt '{ if(FILENAME==CODE_DIR) d[$1$2]=$3 ; else if( $1$2 in d  && $3>d[$1$2]) print $0;  }' access2.txt biz2.txt  > pause_tmp1.txt
+cat pause_tmp1.txt | awk -F',' '{ print "http://192.100.6.247:8888/pause?id="$1"&servcode="$2"&reason=ftousu_pause";}' >auto_pause_${DEALDATE_1}a.txt
+scp auto_pause_${DEALDATE_1}a.txt gateway@192.100.7.25:/data/www/sjyl_sjsj_url/url
+同步数据库模块（从前一天13点到当天0点）
+15 01 * * * /usr/local/bin/php /data/www/sjyl_sjsj_url/url.php auto_pause_`date -v-1d +\%Y\%m\%d`a 2>&1
+url.php
+<?php
+set_time_limit(0);
+define('PATH',dirname(__FILE__));    
+define('PATH_LOG',PATH.'/log');
+$cron_action = $_SERVER['argv']['1'];
+if(!empty($cron_action)){
+	
+function doinglog($log_info,$name){
+    $open_filename = fopen(PATH_LOG.'/'.$name.'.log','a+');
+    fwrite($open_filename,date('Y-m-j H:i:s').'|'.$log_info."\n");    
+    fclose($open_filename); 
+}
+
+function curl_url($url){
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_TIMEOUT,2);
+		curl_setopt($ch, CURLOPT_HEADER, false);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		$r  = curl_exec($ch);
+		curl_close($ch);
+		return $r;   
+}
+
+
+//判断文件是否存在
+if(file_exists(PATH.'/url/'.$cron_action.'.txt')){
+
+//执行文件
+$fp = fopen(PATH.'/url/'.$cron_action.'.txt',"r");
+$i = 0;
+while(!feof($fp)){	
+  $post_data = fgets($fp);
+
+  //没有了就弹出
+  if(empty($post_data)){	
+  continue;
+  }
+  //请求接口
+  $ret=curl_url(trim($post_data));
+  //记日志
+  $trim_post_data = trim($post_data);
+  $trim_ret = trim($ret);
+  $log_data =$trim_post_data.'|'.$trim_ret;
+  doinglog($log_data,$cron_action);
+  //输出下执行url和返回参数
+  echo $i++."\n";
+  usleep(1000);
+}
+fclose($fp);
+echo 'over';
+exit;
+}else{
+echo 'File not found!';
+exit;	
+} 
+
+}else{
+echo 'argv is empty!';
+exit;	
+}  
+?>
+统计分析模块（从前一天13点到当天0点）
+#!/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/gateway/bin:;
+export PATH
+LANG=zh_CN.UTF-8
+DEALDATE=`date -v-0d  +%Y%m%d`
+DEALDATETIME=`date -v-2H  +%Y%m%d%H00`
+DEALDATE_1=`date -v-1d  +%Y%m%d`
+DEALDATE_4=`date -v-1d  +%Y-%m-%d`
+DEALDATE_year=`date -v-1d  +%Y`
+DEALDATE_2=`date -v-0d  +%Y%m%d` 
+DEALDATE_3=`date -v-2d  +%Y%m%d`
+DEALDATE_Y=`date -v-1d  +%Y`
+DEALDATE_MD=`date -v-1d  +%m%d`
+CODE_DIR='/data/ftousu_pause'
+dictionary1='/data/wuying/PKFILTER_DIC/nodist.tsv'
+dictionary2='/data/211/dictionary/shbb_servcode_dictionary.txt'
+echo ${DEALDATE}
+echo ${DEALDATETIME}
+echo ${LOG_DIR}
+cd ${CODE_DIR}
+if [ ! -d "${DEALDATE_1}" ]; then
+   mkdir ${DEALDATE_1}   
+fi
+echo "mkdir_done"
+cd ${DEALDATE_1}
+
+--------取暂停明细----
+cat /data/www/sjyl_sjsj_url/log/auto_pause_${DEALDATE_1}a.log | grep 'true' | awk -F'|' '{print $2}'  | awk -F'[=&]' 'BEGIN{OFS="|";}{print $2,$4}' | sort -u > ${DEALDATE_1}_tmp_pause_a.txt
+#cat /data/www/sjyl_sjsj_url/log/auto_pause_20161025a.log | grep 'true' | awk -F'|' '{print $2}'  | awk -F'[=&]' 'BEGIN{OFS="|";}{print $2,$4}' | sort -u > ${DEALDATE_1}_tmp_pause_a.txt
+awk -F'|' -v NODIST_DIR=/data/wuying/PKFILTER_DIC/nodist.tsv -v OPTCODE_DIR=/data/211/dictionary/shbb_servcode_dictionary.txt '{
+	if(FILENAME == NODIST_DIR){split($0,tmp,"|");{p=tmp[1];m=tmp[4];nodist[m]=p;}}
+	else if(FILENAME == OPTCODE_DIR) optcode[$1] = $2;
+	else{nod=substr($1,1,7);if($2 in optcode && nod in nodist){split(nodist[nod],t1,"|");province=t1[1];
+	split(optcode[$2],t2,"|");optcost=t2[1];
+	print province,optcost;}}
+	}' /data/wuying/PKFILTER_DIC/nodist.tsv /data/211/dictionary/shbb_servcode_dictionary.txt ${DEALDATE_1}_tmp_pause_a.txt > ${DEALDATE_1}_report_pausea.txt
+cat	${DEALDATE_1}_report_pausea.txt |  sort |uniq -c | sort -rn | awk 'BEGIN{print "省份,业务名称,恢复状态量";}{print $2","$3","$1}' > ${DEALDATE_1}_report_pause_a.csv
+群发邮件模块（从前一天13点到当天0点）
+shbb_active_analysis_mail.sh
+#!bin/bash
+DEALDATE=`date -v-1d  +%Y%m%d`
+echo ${DEALDATE}
+echo "shbb_active"`date -v-1d  +%Y%m%d` >>  /data/211/log/shbb_active_email.log
+
+/usr/local/bin/php /data/211/bin/shbb_active_analysis_mail.php /data/ftousu_pause/${DEALDATE}/${DEALDATE}_report_pause_a.csv >> /data/211/log/shbb_active_email.log
+
+echo ${DEALDATE}
+shbb_active_analysis_mail.php
+<?php
+	/**
+	* @desc 生活播报激活 每天发送 
+	* @author wangyuan
+	* @date 2016-10-26 17:35
+	*
+	*/
+
+	error_reporting(E_ALL);
+	define('SERVER_ROOT', dirname(__FILE__).'/');
+	
+   $end_time = date("Y-m-d H",time()-3600*12);
+	$start_time = date("Y-m-d H" ,time()-3600*1);
+
+	//$fileName = "general.txt";
+	$file = $_SERVER['argv'][1];
+	$fileName = basename($file); 
+	//$file = SERVER_ROOT . $fileName;
+	if( !file_exists($file)) {
+		exit;
+	}
+
+	//把整个文件读入一个变量	
+	$fp = fopen($file, "r");	
+	$read = fread($fp, filesize($file));
+
+	//base64编码
+	$read = base64_encode($read);
+
+
+	//把这个长字符串切成由每行76个字符组成的小块
+	$read = chunk_split($read);
+	
+	$boundary = uniqid();
+
+	//建立邮件的主体
+	$body = "--$boundary\n";
+	$body .= "Content-Type:application/octet-stream;name=\"".$fileName;
+	$body .= "\"\nContent-Transfer-Encoding:BASE64\n";
+	$body .= "Content-Disposition:attachment;filename=\"".$fileName;
+	$body .= "\"\n\n".$read."\n\n";
+	$body .= "--$boundary--\n\n";
+
+	$headers = "From:wangyuan@umessage.com.cn\n";
+	$headers .= "Cc:183644346@qq.com\n";
+	$headers .= "Content-type:multipart/mixed;boundary=\"$boundary\"";
+	$subject = iconv("UTF-8", "gbk", "生活播报恢复状态量---从".$end_time."点到".$start_time."点的报告");
+	$to = "283049708@qq.com,13581960272@139.com,13771806181@139.com,13436230@qq.com";
+	var_dump(mail($to, $subject,$body,$headers));
+
+?>
+提取暂停数据模块（从当天1点到当天12点）
+#!/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/gateway/bin:;
+export PATH
+LANG=zh_CN.UTF-8
+DEALDATE=`date -v-0d  +%Y%m%d`
+DEALDATETIME=`date -v-2H  +%Y%m%d%H00`
+DEALDATE_1=`date -v-1d  +%Y%m%d`
+DEALDATE_4=`date -v-1d  +%Y-%m-%d`
+DEALDATE_year=`date -v-1d  +%Y`
+DEALDATE_2=`date -v-0d  +%Y%m%d` 
+DEALDATE_3=`date -v-2d  +%Y%m%d`
+DEALDATE_Y=`date -v-1d  +%Y`
+DEALDATE_MD=`date -v-1d  +%m%d`
+CODE_DIR='/data/logs/shujuyzx/shbb_pause_active'
+LOG_DIR='/data/logs/archives/usa2/'
+LOG_DIR1='/data/logs/archives/usa2/'${DEALDATE_1}
+LOG_DIR2='/data/logs/archives/usa2/'${DEALDATE_2}
+echo ${DEALDATE}
+echo ${DEALDATETIME}
+echo ${LOG_DIR}
+cd ${CODE_DIR}
+if [ ! -d "${DEALDATE_2}" ]; then
+   mkdir ${DEALDATE_2}   
+fi
+echo "mkdir_done"
+cd ${DEALDATE_2}
+--------取暂停明细----
+bzcat ${LOG_DIR2}/usa2-access.log.${DEALDATE_2}0[1-9]00.bz2 ${LOG_DIR2}/usa2-access.log.${DEALDATE_2}1[0-2]00.bz2 | grep 'pause' | grep 'bosspause'| grep 'False'| awk -F'[ |]' 'BEGIN{OFS="=";} {print $3,$9;}' | awk -F'[=&]' 'BEGIN{OFS=",";}{print $1,$3,$5}' | sort -u> access3.txt
+awk -F',' '{
+    if (a[$2","$3] < $1) {
+        a[$2","$3]=$1
+    }
+} END {
+    for (i in a) {
+        print i "," a[i]
+    }
+}' access3.txt > access4.txt
+bzcat  ${LOG_DIR2}/usa2-biz.log.${DEALDATE_2}0[1-9]00.bz2 ${LOG_DIR2}/usa2-biz.log.${DEALDATE_2}1[0-2]00.bz2 |  grep 'bossactive' | awk -F'|' '$7~/^2/{print $1,$3,$6}' | awk 'BEGIN{OFS=",";}{print $3,$(NF-1),$NF}'  | sort -u> biz3.txt
+awk -F',' '{
+    if (a[$2","$3] < $1) {
+        a[$2","$3]=$1
+    }
+} END {
+    for (i in a) {
+        print i "," a[i]
+    }
+}' biz3.txt > biz4.txt
+awk -F',' -v CODE_DIR=access4.txt '{ if(FILENAME==CODE_DIR) d[$1$2]=$3 ; else if( $1$2 in d  && $3>d[$1$2]) print $0;  }' access4.txt biz4.txt  > pause_tmp2.txt
+cat pause_tmp2.txt | awk -F',' '{ print "http://192.100.6.247:8888/pause?id="$1"&servcode="$2"&reason=ftousu_pause";}' >auto_pause_${DEALDATE_2}b.txt
+scp auto_pause_${DEALDATE_2}b.txt gateway@192.100.7.25:/data/www/sjyl_sjsj_url/url
+同步数据库模块（从当天1点到当天12点）
+15 01 * * * /usr/local/bin/php /data/www/sjyl_sjsj_url/url.php auto_pause_`date -v-1d +\%Y\%m\%d`a 2>&1
+url.php
+<?php
+set_time_limit(0);
+define('PATH',dirname(__FILE__));    
+define('PATH_LOG',PATH.'/log');
+$cron_action = $_SERVER['argv']['1'];
+if(!empty($cron_action)){
+	
+function doinglog($log_info,$name){
+    $open_filename = fopen(PATH_LOG.'/'.$name.'.log','a+');
+    fwrite($open_filename,date('Y-m-j H:i:s').'|'.$log_info."\n");    
+    fclose($open_filename); 
+}
+
+function curl_url($url){
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_TIMEOUT,2);
+		curl_setopt($ch, CURLOPT_HEADER, false);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		$r  = curl_exec($ch);
+		curl_close($ch);
+		return $r;   
+}
+
+
+//判断文件是否存在
+if(file_exists(PATH.'/url/'.$cron_action.'.txt')){
+
+//执行文件
+$fp = fopen(PATH.'/url/'.$cron_action.'.txt',"r");
+$i = 0;
+while(!feof($fp)){	
+  $post_data = fgets($fp);
+
+  //没有了就弹出
+  if(empty($post_data)){	
+  continue;
+  }
+  //请求接口
+  $ret=curl_url(trim($post_data));
+  //记日志
+  $trim_post_data = trim($post_data);
+  $trim_ret = trim($ret);
+  $log_data =$trim_post_data.'|'.$trim_ret;
+  doinglog($log_data,$cron_action);
+  //输出下执行url和返回参数
+  echo $i++."\n";
+  usleep(1000);
+}
+fclose($fp);
+echo 'over';
+exit;
+}else{
+echo 'File not found!';
+exit;	
+} 
+
+}else{
+echo 'argv is empty!';
+exit;	
+}  
+?>
+统计分析模块（从当天1点到当天12点）
+#!/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/gateway/bin:;
+export PATH
+LANG=zh_CN.UTF-8
+DEALDATE=`date -v-0d  +%Y%m%d`
+DEALDATETIME=`date -v-2H  +%Y%m%d%H00`
+DEALDATE_1=`date -v-1d  +%Y%m%d`
+DEALDATE_4=`date -v-1d  +%Y-%m-%d`
+DEALDATE_year=`date -v-1d  +%Y`
+DEALDATE_2=`date -v-0d  +%Y%m%d` 
+DEALDATE_3=`date -v-2d  +%Y%m%d`
+DEALDATE_Y=`date -v-1d  +%Y`
+DEALDATE_MD=`date -v-1d  +%m%d`
+CODE_DIR='/data/ftousu_pause'
+dictionary1='/data/wuying/PKFILTER_DIC/nodist.tsv'
+dictionary2='/data/211/dictionary/shbb_servcode_dictionary.txt'
+echo ${DEALDATE}
+echo ${DEALDATETIME}
+echo ${LOG_DIR}
+cd ${CODE_DIR}
+if [ ! -d "${DEALDATE_2}" ]; then
+   mkdir ${DEALDATE_2}   
+fi
+echo "mkdir_done"
+cd ${DEALDATE_2}
+
+--------取暂停明细----
+cat /data/www/sjyl_sjsj_url/log/auto_pause_${DEALDATE_2}b.log | grep 'true' | awk -F'|' '{print $2}'  | awk -F'[=&]' 'BEGIN{OFS="|";}{print $2,$4}' | sort -u > ${DEALDATE_2}_tmp_pause_b.txt
+#cat /data/www/sjyl_sjsj_url/log/auto_pause_20161028b.log | grep 'true' | awk -F'|' '{print $2}'  | awk -F'[=&]' 'BEGIN{OFS="|";}{print $2,$4}' | sort -u > ${DEALDATE_2}_tmp_pause_a.txt
+awk -F'|' -v NODIST_DIR=/data/wuying/PKFILTER_DIC/nodist.tsv -v OPTCODE_DIR=/data/211/dictionary/shbb_servcode_dictionary.txt '{
+	if(FILENAME == NODIST_DIR){split($0,tmp,"|");{p=tmp[1];m=tmp[4];nodist[m]=p;}}
+	else if(FILENAME == OPTCODE_DIR) optcode[$1] = $2;
+	else{nod=substr($1,1,7);if($2 in optcode && nod in nodist){split(nodist[nod],t1,"|");province=t1[1];
+	split(optcode[$2],t2,"|");optcost=t2[1];
+	print province,optcost;}}
+	}' /data/wuying/PKFILTER_DIC/nodist.tsv /data/211/dictionary/shbb_servcode_dictionary.txt ${DEALDATE_2}_tmp_pause_b.txt > ${DEALDATE_2}_report_pauseb.txt
+cat	${DEALDATE_2}_report_pauseb.txt |  sort |uniq -c | sort -rn | awk 'BEGIN{print "省份,业务名称,恢复状态量";}{print $2","$3","$1}' > ${DEALDATE_2}_report_pause_b.csv
+群发邮件模块（从当天1点到当天12点）
+shbb_active_analysis_mail1.sh
+#!bin/bash
+DEALDATE=`date -v-0d  +%Y%m%d`
+echo ${DEALDATE}
+echo "shbb_active"`date -v-0d  +%Y%m%d` >>  /data/211/log/shbb_active_email1.log
+
+/usr/local/bin/php /data/211/bin/shbb_active_analysis_mail1.php /data/ftousu_pause/${DEALDATE}/${DEALDATE}_report_pause_b.csv >> /data/211/log/shbb_active_email1.log
+
+echo ${DEALDATE}
+shbb_active_analysis_mail1.php
+<?php
+	/**
+	* @desc 生活播报激活(当天1点到12点) 每天发送 
+	* @author wangyuan
+	* @date 2016-10-26 17:35
+	*
+	*/
+
+	error_reporting(E_ALL);
+	define('SERVER_ROOT', dirname(__FILE__).'/');
+	
+	$end_time = date("Y-m-d H",time()-3600*12);
+	$start_time = date("Y-m-d H" ,time()-3600*1);
+
+	//$fileName = "general.txt";
+	$file = $_SERVER['argv'][1];
+	$fileName = basename($file); 
+	//$file = SERVER_ROOT . $fileName;
+	if( !file_exists($file)) {
+		exit;
+	}
+
+	//把整个文件读入一个变量	
+	$fp = fopen($file, "r");	
+	$read = fread($fp, filesize($file));
+
+	//base64编码
+	$read = base64_encode($read);
+
+
+	//把这个长字符串切成由每行76个字符组成的小块
+	$read = chunk_split($read);
+	
+	$boundary = uniqid();
+
+	//建立邮件的主体
+	$body = "--$boundary\n";
+	$body .= "Content-Type:application/octet-stream;name=\"".$fileName;
+	$body .= "\"\nContent-Transfer-Encoding:BASE64\n";
+	$body .= "Content-Disposition:attachment;filename=\"".$fileName;
+	$body .= "\"\n\n".$read."\n\n";
+	$body .= "--$boundary--\n\n";
+
+	$headers = "From:wangyuan@umessage.com.cn\n";
+	$headers .= "Cc:183644346@qq.com\n";
+	$headers .= "Content-type:multipart/mixed;boundary=\"$boundary\"";
+	$subject = iconv("UTF-8", "gbk", "生活播报恢复状态量---从".$end_time."点到".$start_time."点的报告");
+	$to = "283049708@qq.com,13581960272@139.com,13771806181@139.com,13436230@qq.com";
+	var_dump(mail($to, $subject,$body,$headers));
+ //"山东12580生活播报-法律百科彩信版---从".$start_time."到".$end_time."的新增用户详单"
+?>
