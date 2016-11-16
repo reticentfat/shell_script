@@ -1,3 +1,10 @@
+#制作免密码scp192.100.7.15到192.100.7.21
+#192.100.7.15上
+#ssh-keygen -t rsa -b 2048
+#scp /home/gateway/.ssh/id_rsa.pub gateway@192.100.7.21:/home/gateway/
+#192.100.7.21上
+#cat id_rsa.pub >> .ssh/authorized_keys
+
 从192.100.7.27的oracle账户向gateway@192.100.7.13免密码scp
 在27上ssh-copy-id gateway@192.100.7.13
 http://unix.stackexchange.com/questions/182483/scp-without-password-prompt-using-different-username
