@@ -28,9 +28,10 @@
 目录
 1
 创建文件夹模块	2
-生成PV UV等数据并展现模块	3
-交叉营销数据模块	5
-省份字典模块	6
+IP抓取模块	3
+生成PV UV等数据并展现模块	4
+交叉营销数据模块	6
+省份字典模块	7
 
 创建文件夹模块
 #192.100.7.21：h5_lottery_mkdir
@@ -58,6 +59,38 @@ if [ ! -d "${DEALDATE_1}" ]; then
    mkdir ${DEALDATE_1}   
 fi
 echo "mkdir_done"
+IP抓取模块
+#!/bin/bash
+#curl -s "http://api.ip138.com/query/?ip=60.191.176.109&datatype=txt&token=400316d95aeca0d5706064f0a02456e1"
+ipp (){
+  exec < $1
+  while read a
+  do
+  sring=`curl -s "http://api.ip138.com/query/?ip=${a}&datatype=txt&token=4056e1"`
+  echo "$sring "| tee -a /data/log/h5_lottery/dictionary/ip-result.txt
+  done
+}
+case $1 in
+-f)
+shift
+ipp $1
+;;
+-i)
+shift
+sring=`curl -s "http://api.ip138.com/query/?ip=${1}&datatype=txt&token=4056e1"`
+echo "$sring " | tee -a /data/log/h5_lottery/dictionary/ip-result.txt
+;;
+*)
+echo "[Help]
+$0 need -f or -i
+-f ------- argument is a file
+-i ------- argument is a IP
+[For example]:
+$0 -f ip.txt
+$0 -i 116.9.27.238
+"
+;;
+esac
 生成PV UV等数据并展现模块
 #192.100.7.21：h5_lottery
   2 00 06 * * * sh /home/gateway/bin/call_shell_script_from_another_shell.sh  > /dev/null 2>&1
