@@ -6,6 +6,7 @@ echo $(date)
 
 bpath='/data/match/cmpp'
 s3str='stats_month'
+--如果有第二个参数就是本身，第二参数为空的的话缺省值为wuxian_qianxiang
 filter=${2:-"wuxian_qianxiang"}
 code=${3:-"0"}
 
