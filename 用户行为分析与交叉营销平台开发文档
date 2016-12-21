@@ -133,7 +133,7 @@ awk -F'|' '$4~/^1/{print $0}' tmp3.txt >  tmp4.txt
 cat tmp4.txt | awk -F'|' '{print $5"|"$6"|"$3}' | sort -u | awk -F'|' '{print $1,$2,$3}' | sort | uniq -c | awk  '{print $2,$3,$4,$1}'>UV.txt
 cat tmp4.txt | awk -F'|' 'substr($1,9,2)=="20"{print $5"|"$6"|"$3}' | sort -u | awk -F'|' '{print $1,$2,$3}' | sort | uniq -c | awk  '{print $2,$3,$4,$1}'>OnlineUser.txt
 cat tmp3.txt | awk -F'|' '{print $5"|"$6"|"$3}' | awk -F'|' '{print $1,$2,$3}' | sort | uniq -c | awk  '{print $2,$3,$4,$1}'> PV.txt
-cat tmp3.txt | awk -F'|' '{print $5"|"$6"|"$3}' | sort -u | awk -F'|' '{print $1,$2,$3}' | sort | uniq -c | awk  '{print $2,$3,$4,$1}'> IP.txt
+cat tmp3.txt | awk -F'|' '{print $5"|"$6"|"$3"|"$2}' | sort -u | awk -F'|' '{print $1,$2,$3}' | sort | uniq -c | awk  '{print $2,$3,$4,$1}'> IP.txt
 awk -F'[ \t|]' -v CODE_DIR=/data/log/h5_lottery/dictionary/ip-result-gbk.txt '{if(FILENAME==CODE_DIR) d[$1]=$3"|"$4  ; else if(FILENAME != CODE_DIR &&( $2 in d)&&$5=="00" ) print $0"|"d[$2];}' /data/log/h5_lottery/dictionary/ip-result-gbk.txt ${DEALDATE_1}_tmp2.txt > ${DEALDATE_1}_tmp3.txt
 awk -F'|' -v CODE_DIR=/data/log/h5_lottery/dictionary/h5_lottery_dictionary.txt '{ if(FILENAME==CODE_DIR) d[$1]=$2 ; else if( $4 in d  ) print $8"|"$9"|"d[$4];  }' /data/log/h5_lottery/dictionary/h5_lottery_dictionary.txt ${DEALDATE_1}_tmp3.txt  | awk -F'|' '{print $1,$2,$3}' | iconv -f GB18030  -t UTF-8 | sort | uniq -c | awk  '{print $2,$3,$4,$1}'> crossmarketing.txt
 ---------------------------------------------------------------------
