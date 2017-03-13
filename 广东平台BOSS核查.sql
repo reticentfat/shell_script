@@ -13,7 +13,7 @@ select f.mobile_sn, o.appcode, o.opt_cost,j.appcode
  and 'F' || f.fee_app_code = o.opt_type 
   and f.mobile_sub_state = 3
   -- and j.opt_code like '违章%'
- order by f.mobile_sn
+ --order by f.mobile_sn
  union all 
   select n.mobile_sn, o.appcode, o.opt_cost,j.appcode
   from new_wireless_subscription n, jf_1  j,opt_code o --,mobilenodist m 
@@ -21,7 +21,7 @@ select f.mobile_sn, o.appcode, o.opt_cost,j.appcode
  and n.appcode=o.appcode 
   and n.mobile_sub_state = 3
   -- and j.opt_code like '违章%'
- order by n.mobile_sn
+ --order by n.mobile_sn
  union all 
   select n.mobile_sn, o.appcode, o.opt_cost,j.appcode
   from new_wireless_subscription_shbb n, jf_1  j,opt_code o --,mobilenodist m 
@@ -29,4 +29,4 @@ select f.mobile_sn, o.appcode, o.opt_cost,j.appcode
  and n.appcode=o.appcode
   and n.mobile_sub_state = 3
   -- and j.opt_code like '违章%'
- order by n.mobile_sn
+ --order by n.mobile_sn
