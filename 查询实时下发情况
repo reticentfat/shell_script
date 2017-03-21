@@ -1,0 +1,5 @@
+sudo -s
+su shujuyzx
+ssh shujuyzx@172.200.5.31到/logs/monster下查询
+mm7为彩信,cmpp为短信
+report为i日志
