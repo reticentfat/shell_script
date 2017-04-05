@@ -1,0 +1,19 @@
+oracle数据库查看用户锁表及对表解锁的sql语句
+oracle数据库查看用户锁表及对表解锁的sql语句
+大型项目中很多人使用一个用户名登录oracle服务器，很多人都有可能对同一张表进行各种操作，不知不觉地就会出现锁表的情况。如何解决此问题呢?据老手说很简单，下面就是使用sql语句解决的方法。
+首先执行一下语句查看是哪个进程和序列锁住了表
+select sess.sid, 
+    sess.serial#, 
+    lo.oracle_username, 
+    lo.os_user_name, 
+    ao.object_name, 
+    lo.locked_mode 
+    from v$locked_object lo, 
+    dba_objects ao, 
+    v$session sess 
+where ao.object_id = lo.object_id and lo.session_id = sess.sid
+
+通过以上sql就可以知道哪个进程、序列，oracle用户名、操作系统用户名、表名、锁表模式几个字段
+
+下面一步就是将改锁表的进程和序列杀掉了，执行下面的语句即可。
+alter system kill session '1020,38953' --(1020，就是执行第一步语句得到的sid字段值，38953就是serial#字段值)
