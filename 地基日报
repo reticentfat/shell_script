@@ -1,0 +1,63 @@
+select  
+      v_prov_code, sum(sj_byxxf) from 
+(select  a.v_prov_code,
+         a.v_new_user_num  sj_byxxf
+  from table(umg_stat_new.StatTheoryIncomeInfo(TO_CHAR(TO_DATE('2017-04-01','YYYY-MM-DD')-1,'YYYY-MM-DD'),
+                                               '901808',
+                                               '999',
+                                               '所有业务',
+                                               '2')) a , opt_code b where a.V_PX_USER_NUM=b.appcode  and b.appcode !='10301105'
+ union all
+select 
+       c.v_prov_code , 
+        c.v_new_user_num  sj_byxxf
+  from table(umg_stat_new.StatTheoryIncomeInfo(TO_CHAR(TO_DATE('2017-04-01','YYYY-MM-DD')-1,'YYYY-MM-DD'),
+                                               '801174',
+                                               '999',
+                                               '所有业务',
+                                               '2')) c  , opt_code b where c.V_PX_USER_NUM=b.appcode 
+  ) m
+group by   v_prov_code ;
+36011354+5922734
+1888616+11
+
+--select * from opt_code
+  select 
+       a.PROV_NAME,
+       
+       sum(nvl(num,0)*a.fee)  
+  from tb_theory_income_dianbo a
+ where  --deal_date>='2014-11-01' and deal_date <  '2014-11-06'
+    deal_date =  TO_CHAR(TO_DATE('2017-02-21','YYYY-MM-DD')-1,'YYYY-MM-DD')
+ group by 
+          a.PROV_NAME
+          
+          ;
+  308
+  select * from tb_rpt_oper_day
+  
+  select  prov_name,sum(xzyh) from 
+  (select t.prov_name,sum(t.jf_user_num) xzyh from tb_rpt_oper_day t where deal_date='2017-02-20' group by t.prov_name
+  union all 
+   select t.prov_name,sum(t.jf_user_num) xzyh from tb_rpt_wzjst_day t where deal_date='2017-02-20' and t.prov_name='广东' group by t.prov_name
+ ) b group by  prov_name
+ 
+   select  prov_name,sum(xzyh) from 
+  (select t.prov_name,sum(t.jf_user_num) xzyh from tb_rpt_oper_day t where deal_date='2017-02-19' group by t.prov_name
+  union all 
+   select t.prov_name,sum(t.jf_user_num) xzyh from tb_rpt_wzjst_day t where deal_date='2017-02-19' and t.prov_name='广东' group by t.prov_name
+ ) b group by  prov_name
+  10909 16108
+  江苏：32 46
+select  m.province,count(distinct s.receiver)--,count(case when errordetail='0' then s.receiver end),count(case when errordetail='0' then s.receiver end)*b.fee 
+from s200808_temp s, tb_theory_income_base_dianbo b ,mobilenodist m 
+where substr(s.receiver,1,7)=m.beginno and dealtime >= '20170220000000' and dealtime < '20170221000000'and s.serviceid=b.appcode 
+   -- and m.province='黑龙江'
+group by m.province--,substr(dealtime,1,8)
+ 新增点播用户数：25491 24655
+  江苏：0 0
+  o.optbigclass,t.oper_name 
+  select * from tb_theory_income_base_dianbo t   group by  t.oper_name,t.oper_name_real
+  
+  
+  select * from opt_code
