@@ -1,0 +1,1 @@
+sudo /usr/sbin/ntpdate cn.pool.ntp.org
