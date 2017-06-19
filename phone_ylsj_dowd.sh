@@ -71,35 +71,45 @@ bzcat /data/monster/${RECOMMDATE}/monster-mm7-report.log.${DEALDATE}00.bz2  /dat
 #短信历史未勾兑
 cat /data/monster/monster-cmpp.log.*_no.txt | bzip2 > /data/monster/${RECOMMDATE}/monster-cmpp.log.all_no.txt.bz2
 rm  /data/monster/monster-cmpp.log.*_no.txt
-#勾兑短信历史判断发送时间超过3天的日志状态返回为NOBACK,未满足的继续累积到下次比对else if (  !($33$13  in aa) )  print $33","$13","$16","$20",NOBACK","substr($2,3,14) >> fileok;  ( SYSDATETIME-substr($2,3,14) ) > 3000000  &&
+#勾兑短信历史判断发送时间超过3天的日志状态返回为NOBACK,未满足的继续累积到下次比对
+
 bzcat /data/monster/${RECOMMDATE}/monster-cmpp-report.log.${DEALDATE}00.bz2 /data/monster/${RECOMMDATE}/monster-cmpp.log.all_no.txt.bz2    | awk -F'[\],]' -v fileok=/data/monster/${RECOMMDATE}/monster-cmpp.log.${DEALDATE}00_ok.txt -v file0=/data/monster/monster-cmpp.log.${DEALDATE}00_no.txt -v SYSDATETIME=${TODAYTIME} '{if(NF<20) aa[$3$6]=$5","$7 ; else if ($33$13  in aa)  print  $13","$16","$20","aa[$33$13]","substr($2,3,44) >> fileok;    else if (   !($33$13  in aa) )  print  >> file0;  }'   
 
 #彩信历史未勾兑
 cat /data/monster/monster-mm7.log.*_no.txt | bzip2 > /data/monster/${RECOMMDATE}/monster-mm7.log.all_no.txt.bz2
 rm  /data/monster/monster-mm7.log.*_no.txt
-#勾兑彩信历史判断发送时间超过3天的日志状态返回为NOBACK,未满足的继续累积到下次比对else if (  !($30$15  in aa))  print $30","$15","$18","$22",NOBACK,"substr($4,2,14) >> fileok;  (SYSDATETIME-substr($4,2,14))>3000000  && 
-#bzcat /data/monster/${RECOMMDATE}/monster-mm7-report.log.${DEALDATE}00.bz2  /data/monster/${RECOMMDATE}/monster-mm7.log.all_no.txt.bz2 | awk -F'[:,]' -v fileok=/data/monster/${RECOMMDATE}/monster-mm7.log.${DEALDATE}00_ok.txt -v file0=/data/monster/monster-mm7.log.${DEALDATE}00_no.txt -v SYSDATETIME=${TODAYTIME} '{if(NF<20) aa[$5substr($7,3,13)]=$10 ; else if ($30$15  in aa)  print  $15","$18","$22","aa[$30$15]","substr($4,2,14)","substr($4,2,44) >> fileok;  else if (  !($30$15  in aa))  print  >> file0;  }'   
+#勾兑彩信历史判断发送时间超过3天的日志状态返回为NOBACK,未满足的继续累积到下次比对
+bzcat /data/monster/${RECOMMDATE}/monster-mm7-report.log.${DEALDATE}00.bz2  /data/monster/${RECOMMDATE}/monster-mm7.log.all_no.txt.bz2 | awk -F'[:,]' -v fileok=/data/monster/${RECOMMDATE}/monster-mm7.log.${DEALDATE}00_ok.txt -v file0=/data/monster/monster-mm7.log.${DEALDATE}00_no.txt -v SYSDATETIME=${TODAYTIME} '{if(NF<20) aa[$5substr($7,3,13)]=$10 ; else if ($30$15  in aa)  print  $15","$18","$22","aa[$30$15]","substr($4,2,14)","substr($4,2,44) >> fileok;  else if (  !($30$15  in aa) && (( SYSDATETIME - substr($4,2,14) ) >3000000)   )  print $30","$15","$18","$22",NOBACK,"substr($4,2,14) >> fileok;  else if (  !($30$15  in aa) && (( SYSDATETIME - substr($4,2,14)) <= 3000000) )  print  >> file0;  }'   
 
 
 #匹配短信勾兑成功号码对应商界与医疗的业务代码
 #yiliao|10511074|801174|中医健康|1258182|800|包月计费|手机医疗
 #shangjie|10511084|801174|商务专刊包月|1258194|500|包月计费|手机商界
+#HSH_shangjie|10201077|901808|惠生活短信点播5元|UMGHSHDB|500|按次/按条计费|广东惠生活
 #下发时间，下行号码，下行APPCODE,下行计费代码，下行流水号，接收状态
 ##15276116317,20100052,UMGYWCXX,MI:1000,20140910000001,09100000010101065351
- awk  -F '[|,]' -v opt_code=/data/211/PKFILTER_DIC/phone_yiliao_shangjie_dic.txt    -v file_oka=/data/monster/${RECOMMDATE}/monster-cmpp.log.${DEALDATE}00_ok.txt   -v file_okb=/data/monster/${RECOMMDATE}/monster-mm7.log.${DEALDATE}00_ok.txt -v file_ok_shangjie_cmpp=/data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_cmpp_ok.txt  -v file_ok_shangjie_mm7=/data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_mm7_ok.txt  -v file_ok_yiliao=/data/monster/${RECOMMDATE}/monster_yiliao_${DEALDATE}00_ok.txt '{
+ awk  -F '[|,]' -v opt_code=/data/211/PKFILTER_DIC/phone_yiliao_shangjie_dic.txt    -v file_oka=/data/monster/${RECOMMDATE}/monster-cmpp.log.${DEALDATE}00_ok.txt   -v file_okb=/data/monster/${RECOMMDATE}/monster-mm7.log.${DEALDATE}00_ok.txt -v file_ok_shangjie_cmpp=/data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_cmpp_ok.txt  -v file_ok_shangjie_mm7=/data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_mm7_ok.txt  -v file_ok_yiliao=/data/monster/${RECOMMDATE}/monster_yiliao_${DEALDATE}00_ok.txt -v file_ok_hsh_shangjie_cmpp=/data/monster/${RECOMMDATE}/monster_hsh_${DEALDATE}00_cmpp_ok.txt  -v file_ok_hsh_shangjie_mm7=/data/monster/${RECOMMDATE}/monster_hsh_${DEALDATE}00_mm7_ok.txt '{
          if(FILENAME == opt_code   )  o[$2]=$1","$3","$4 ;
          else if(FILENAME == file_oka &&  ($2 in o)  && substr(o[$2],1,1)=="s" ) print  o[$2]","$0 >> file_ok_shangjie_cmpp;
+         else if(FILENAME == file_oka &&  ($2 in o)  && substr(o[$2],1,1)=="H" ) print  o[$2]","$0 >> file_ok_hsh_shangjie_cmpp;
          else if(FILENAME == file_oka &&  ($2 in o)  && substr(o[$2],1,1)=="y" ) print  o[$2]","$0 >> file_ok_yiliao;
          else if(FILENAME == file_okb &&  ($2 in o)  && substr(o[$2],1,1)=="s" ) print  o[$2]","$0 >> file_ok_shangjie_mm7;
+         else if(FILENAME == file_okb &&  ($2 in o)  && substr(o[$2],1,1)=="H" ) print  o[$2]","$0 >> file_ok_hsh_shangjie_mm7;
          else if(FILENAME == file_okb &&  ($2 in o)  && substr(o[$2],1,1)=="y" ) print  o[$2]","$0 >> file_ok_yiliao;
+
  }'   /data/211/PKFILTER_DIC/phone_yiliao_shangjie_dic.txt   /data/monster/${RECOMMDATE}/monster-cmpp.log.${DEALDATE}00_ok.txt  /data/monster/${RECOMMDATE}/monster-mm7.log.${DEALDATE}00_ok.txt
 
 #/data/monster/20140911/monster-cmpp.log.201409111300_ok.txt
 cat /data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_cmpp_ok.txt | awk -F',' '{print $9","$5","$6","$7","$4","$8}' | bzip2 >  /data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_cmpp_ok.txt.bz2
 cat /data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_mm7_ok.txt | awk -F',' '{print $9","$5","$6","$7","$4","$8}' | bzip2 >  /data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_mm7_ok.txt.bz2
+cat /data/monster/${RECOMMDATE}/monster_hsh_${DEALDATE}00_cmpp_ok.txt | awk -F',' '{print $9","$5","$6","$7","$4","$8}' | bzip2 >  /data/monster/${RECOMMDATE}/monster_hsh_${DEALDATE}00_cmpp_ok.txt.bz2
+cat /data/monster/${RECOMMDATE}/monster_hsh_${DEALDATE}00_mm7_ok.txt | awk -F',' '{print $9","$5","$6","$7","$4","$8}' | bzip2 >  /data/monster/${RECOMMDATE}/monster_hsh_${DEALDATE}00_mm7_ok.txt.bz2
 cat /data/monster/${RECOMMDATE}/monster_yiliao_${DEALDATE}00_ok.txt | awk -F',' '{print $9","$5","$6","$7","$4","$8}' | bzip2 >  /data/monster/${RECOMMDATE}/monster_yiliao_${DEALDATE}00_ok.txt.bz2
  
-scp /data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_cmpp_ok.txt.bz2 /data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_mm7_ok.txt.bz2  /data/monster/${RECOMMDATE}/monster_yiliao_${DEALDATE}00_ok.txt.bz2  gateway@192.100.7.47:/data/gateway/monster/
+scp /data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_cmpp_ok.txt.bz2 /data/monster/${RECOMMDATE}/monster_shangjie_${DEALDATE}00_mm7_ok.txt.bz2  /data/monster/${RECOMMDATE}/monster_yiliao_${DEALDATE}00_ok.txt.bz2 /data/monster/${RECOMMDATE}/monster_hsh_${DEALDATE}00_cmpp_ok.txt.bz2 /data/monster/${RECOMMDATE}/monster_hsh_${DEALDATE}00_mm7_ok.txt.bz2 gateway@192.100.7.47:/data/gateway/monster/
  
 #rm /data/wuying/zxdz/*${DEALDATE}*.txt
 #rm /data/wuying/zxdz/*${DEALDATE}*.bz2
+
+
+
