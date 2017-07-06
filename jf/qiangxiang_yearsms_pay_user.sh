@@ -1,5 +1,5 @@
 #!/bin/ksh
-cd /data/match/orig/profile
+cd /data/match/orig/profile/
 
 usage () {
     echo "usage: $0  target_dir" 1>&2
@@ -35,31 +35,33 @@ CODE_DIR='/data/match/orig/profile'
       exit 1
     fi
   fi
-
+  
   if [ ! -f "$CODE_DIR/nodist.tsv" ]; then
     echo "$CODE_DIR/nodist.tsv not found"
     exit 1
   fi
-
   ERROR=0
   if [ ! -f "$TARGET_DIR/$$_tmp" ];then
     mkfifo $TARGET_DIR/$$_tmp
   fi
-
   # 字典文件
   FILE_NODIST=$CODE_DIR/nodist.tsv
-  FILE_APP_CODE=$CODE_DIR/qiangxiang_mms_app_code.txt
+  FILE_APP_CODE=$CODE_DIR/qiangxiang_year_sms_app_code.txt
 
   # 数据文件
-  bzcat /data/match/orig/${V_DATE}/snapshot.txt.bz2 > $TARGET_DIR/$$_tmp&
-  DATA_FILE=$TARGET_DIR/$$_tmp
+  
+   bzcat /data/match/orig/${V_DATE}/snapshot.txt.bz2 | grep  -e '|10301093|'  -e '|103240' | awk -F '|' -v first_date='20100701000000'   '{ if(  $3 == "06" && $5 >= first_date )  print $0; else if(  $3 == "07" &&  $4 >=first_date ) print $0;}' > $TARGET_DIR/$$_tmp&
+  bzcat /data/match/orig/${V_DATE}/user_sn.txt.bz2 | grep -e '|10324009|'  -e '|10324010|' | awk -F '|' -v first_date='20100701000000'  '{ if(  $3 == "06" && $5 >= first_date )  print $0; else if(  $3 == "07" &&  $4 >=first_date ) print $0;}' > $TARGET_DIR/$$_tmp&
+
+
+   DATA_FILE=$TARGET_DIR/$$_tmp
 
  #目标文件
-   TARGET_FILE=$TARGET_DIR/qiangxiang_mms_pay_users.txt
+   TARGET_FILE=$TARGET_DIR/qiangxiang_year_sms_pay_users.txt
 
   gawk -F\| 'BEGIN{
                    Current_date="'${V_DATE}'235959";Month=substr(Current_date,1,6)"00000000";Code_File_nodist="'$CODE_DIR'/nodist.tsv"
-                   Code_File_appcode="'$CODE_DIR'/qiangxiang_mms_app_code.txt"
+                   Code_File_appcode="'$CODE_DIR'/qiangxiang_year_sms_app_code.txt"
                  }
                  {
                 if(FILENAME==Code_File_nodist)
@@ -97,31 +99,31 @@ CODE_DIR='/data/match/orig/profile'
                   yy=substr(t,1,4);mm=substr(t,5,2);dd=substr(t,7,2);hh=substr(t,9,2) ;Mi=substr(t,11,2); ss=substr(t,13,2)
                   s=yy" "mm" "dd" "hh" "Mi" "ss
                   b=mktime(s)   #最后一次订阅时间
-                  t=Current_date 
+                  t=Current_date
                   yy=substr(t,1,4);mm=substr(t,5,2);dd=substr(t,7,2);hh=substr(t,9,2) ;Mi=substr(t,11,2) ;ss=substr(t,13,2)
                   s=yy" "mm" "dd" "hh" "Mi" "ss
-                  c=mktime(s)    #当前时间
+                  c=mktime(s)   #当前时间
              
-                  out_list=userid","appcode","app[appcode]","province[userid]","chanel
-             
-              if (user_type==1)  #老用户
+	          out_list=userid","appcode","app[appcode]","province[userid]","chanel	              
+				              
+	          if (user_type==1)  #老用户
                   {
-                      if ((is_subscribed=="06")&&((c-b-259200) > 0))  #老用户，当前状态为订购，当前时间-最近一次订购时间>72小时
+                      if ( is_subscribed=="06" )  #老用户，当前状态为订购 
                       {
                         print out_list
                       }  
-                      else if((is_subscribed=="07")&&((a-b-259200) > 0)&&(op_time>=Month))
+                      else if((is_subscribed=="07")&&(op_time>=Month))
                       {
                         print out_list
                       }
                   }
                   else if (user_type==0)  #新用户
                   {
-                      if ((is_subscribed=="06")&&(prior_time==last_time)&&((c-b-259200) > 0))  #新用户，当前状态为订购，当前时间-最近一次订购时间>72小时
+                      if ((is_subscribed=="06")&&(prior_time==last_time) )  #新用户，当前状态为订购 
                       {
                         print out_list
                       } 
-                      else if ((is_subscribed=="07")&&(prior_time==last_time)&&((a-b-259200) > 0)) 
+                      else if ((is_subscribed=="07")&&(prior_time==last_time) ) 
                       {
                         print out_list
                       }
@@ -130,11 +132,13 @@ CODE_DIR='/data/match/orig/profile'
                         print out_list
                       }
                  }
+			              
               
             }
           }' $FILE_NODIST $FILE_APP_CODE $DATA_FILE  >$TARGET_FILE
          # 出报表结果
-          qiangxiang_outSucc_file=/data/match/orig/mm7/$V_DATE/stats_month.wuxian_qianxiang.1000
+          qiangxiang_outSucc_file=/data/match/orig/mm7/$V_DATE/stats_month.wuxian_qianxiang.0 
+          
           awk -F'[|,]' '{
                    
                   if(FILENAME=="'$FILE_APP_CODE'")
@@ -149,7 +153,7 @@ CODE_DIR='/data/match/orig/profile'
                      sendnum=$3
                      USER_NUM[userid"|"appcode]=sendnum
                   }
-                  else if( ( USER_NUM[$1"|"$2]>(0/2) &&  $2 != "10511055"	&& $2 != "10511052"	&& $2 != "10511003"	&& $2 != "10511004"	&& $2 != "10511050"	&& $2 != "10511005"	&& $2 != "10511019"	&& $2 != "10511020"	&& $2 != "10511022"	&& $2 != "10511051" ) || ( $2 == "10511055" )	|| ( $2 == "10511052"	) || ( $2 == "10511003"	 ) || ( $2 == "10511004" )	|| ( $2 == "10511050" )	|| ( $2 == "10511005" )	|| ($2 == "10511019")	|| ( $2 == "10511020"	) || ($2 == "10511022")	|| ($2 == "10511051") )# 包月用户有单条过高的限制且不为彩改短的业务（10511055	10511052	10511003	10511004	10511050	10511005	10511019	10511020	10511022	10511051），或者为彩改短的业务直接输出，不限制单高 
+                  else if(USER_NUM[$1"|"$2]>=(app[$2]/2))# 包月用户有单条过高的限制
                    {
                        prov_name=$4
                        prov_code=$5
@@ -169,27 +173,14 @@ CODE_DIR='/data/match/orig/profile'
 
                     }  
                }END{
-
-           		printf("%s\n","provinceno,province,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_province.csv"
-           		printf("%s\n","provinceno,province,citycode,city,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_city.csv"
-           		printf("%s\n","provinceno,province,appcode,channel,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_chanel_province.csv"
-          		printf("%s\n", "provinceno,province,citycode,city,appcode,channel,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_chanel_city.csv"
-                        printf("%s\n","all,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_country.csv"
-                for(name in province_appcode){
-                      printf("%s,%d\n",name,province_appcode[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_province.csv"
-                    }
+ 
+           		printf("%s\n","provinceno,province,citycode,city,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_year_sms_pay_city.csv"
+           	   
+            
                 for(name in city_appcode){
-                     printf("%s,%d\n",name,city_appcode[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_city.csv"
+                     printf("%s,%d\n",name,city_appcode[name]) >>"'$TARGET_DIR'/qiangxiang_year_sms_pay_city.csv"
                     }
-                for(name in province_chanel){
-                    printf("%s,%d\n",name,province_chanel[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_chanel_province.csv"
-                  }
-                for(name in city_appcode_chanel){
-                     printf("%s,%d\n",name,city_appcode_chanel[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_chanel_city.csv"
-                 }
-                for(name in country){
-                     printf("%s,%s,%d\n","all",name,country[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_country.csv"
-                 }
+               
 
             }' $FILE_APP_CODE $qiangxiang_outSucc_file $TARGET_FILE
            # rm $DATA_FILE

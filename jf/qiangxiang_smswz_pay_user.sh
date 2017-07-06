@@ -1,5 +1,5 @@
 #!/bin/ksh
-cd /data/match/orig/profile
+cd /data/match/orig/profile/
 
 usage () {
     echo "usage: $0  target_dir" 1>&2
@@ -13,8 +13,8 @@ V_DATE=$1
 V_YEAR=$(echo $V_DATE | cut -c 1-4)
 v_month=$(echo $V_DATE | cut -c 1-6)
 TARGET_DIR='/data'/$V_YEAR/$V_DATE
-#»°…œ“ª∏ˆ‘¬µƒ◊Ó∫Û“ªÃÏ
-#≈–∂œ «∑Ò «◊Ó∫Û“ªÃÏ
+#Âèñ‰∏ä‰∏Ä‰∏™ÊúàÁöÑÊúÄÂêé‰∏ÄÂ§©
+#Âà§Êñ≠ÊòØÂê¶ÊòØÊúÄÂêé‰∏ÄÂ§©
 v_day=$(gawk 'BEGIN{
              t="'$v_month'01000000"
              yy=substr(t,1,4);mm=substr(t,5,2);dd=substr(t,7,2);hh=substr(t,9,2) ;Mi=substr(t,11,2); ss=substr(t,13,2)
@@ -46,20 +46,20 @@ CODE_DIR='/data/match/orig/profile'
     mkfifo $TARGET_DIR/$$_tmp
   fi
 
-  # ◊÷µ‰Œƒº˛
+  # Â≠óÂÖ∏Êñá‰ª∂
   FILE_NODIST=$CODE_DIR/nodist.tsv
-  FILE_APP_CODE=$CODE_DIR/qiangxiang_mms_app_code.txt
+  FILE_APP_CODE=$CODE_DIR/qiangxiang_smswz_app_code.txt
 
-  #  ˝æ›Œƒº˛
-  bzcat /data/match/orig/${V_DATE}/snapshot.txt.bz2 > $TARGET_DIR/$$_tmp&
+  # Êï∞ÊçÆÊñá‰ª∂
+  bzcat /data/match/orig/${V_DATE}/user_sn.txt.bz2 > $TARGET_DIR/$$_tmp&
   DATA_FILE=$TARGET_DIR/$$_tmp
 
- #ƒø±ÍŒƒº˛
-   TARGET_FILE=$TARGET_DIR/qiangxiang_mms_pay_users.txt
+ #ÁõÆÊ†áÊñá‰ª∂
+   TARGET_FILE=$TARGET_DIR/qiangxiang_smswz_pay_users.txt
 
   gawk -F\| 'BEGIN{
                    Current_date="'${V_DATE}'235959";Month=substr(Current_date,1,6)"00000000";Code_File_nodist="'$CODE_DIR'/nodist.tsv"
-                   Code_File_appcode="'$CODE_DIR'/qiangxiang_mms_app_code.txt"
+                   Code_File_appcode="'$CODE_DIR'/qiangxiang_smswz_app_code.txt"
                  }
                  {
                 if(FILENAME==Code_File_nodist)
@@ -84,29 +84,28 @@ CODE_DIR='/data/match/orig/profile'
                   }
                   else
                   {
-                   province[userid]="Œ¥÷™,000,Œ¥÷™,000"
+                   province[userid]="Êú™Áü•,000,Êú™Áü•,000"
                   }
-                  user_type=(last_time <Month) ? 1:0  # ¿œ”√ªß 1 –¬”√ªß 0
+                  user_type=(last_time <Month) ? 1:0  # ËÄÅÁî®Êà∑ 1 Êñ∞Áî®Êà∑ 0
                   last_day =substr(last_time,7,2)
                   prior_day=substr(prior_time,7,2)
                   t=op_time
                   yy=substr(t,1,4);mm=substr(t,5,2);dd=substr(t,7,2);hh=substr(t,9,2) ;Mi=substr(t,11,2); ss=substr(t,13,2)
                   s=yy" "mm" "dd" "hh" "Mi" "ss
-                  a=mktime(s)   #≤Ÿ◊˜ ±º‰
+                  a=mktime(s)
                   t=last_time
                   yy=substr(t,1,4);mm=substr(t,5,2);dd=substr(t,7,2);hh=substr(t,9,2) ;Mi=substr(t,11,2); ss=substr(t,13,2)
                   s=yy" "mm" "dd" "hh" "Mi" "ss
-                  b=mktime(s)   #◊Ó∫Û“ª¥Œ∂©‘ƒ ±º‰
-                  t=Current_date 
+                  b=mktime(s)
+                  t=Current_date
                   yy=substr(t,1,4);mm=substr(t,5,2);dd=substr(t,7,2);hh=substr(t,9,2) ;Mi=substr(t,11,2) ;ss=substr(t,13,2)
                   s=yy" "mm" "dd" "hh" "Mi" "ss
-                  c=mktime(s)    #µ±«∞ ±º‰
+                  c=mktime(s)
              
-                  out_list=userid","appcode","app[appcode]","province[userid]","chanel
-             
-              if (user_type==1)  #¿œ”√ªß
+              out_list=userid","appcode","app[appcode]","province[userid]","chanel
+              if (user_type==1)  #ËÄÅÁî®Êà∑
                   {
-                      if ((is_subscribed=="06")&&((c-b-259200) > 0))  #¿œ”√ªß£¨µ±«∞◊¥Ã¨Œ™∂©π∫£¨µ±«∞ ±º‰-◊ÓΩ¸“ª¥Œ∂©π∫ ±º‰>72–° ±
+                      if ((is_subscribed=="06")&&((c-b-259200) > 0))  #ËÄÅÁî®Êà∑ÔºåÂΩìÂâçÁä∂ÊÄÅ‰∏∫ËÆ¢Ë¥≠ÔºåÂΩìÂâçÊó∂Èó¥-ÊúÄËøë‰∏ÄÊ¨°ËÆ¢Ë¥≠Êó∂Èó¥>72Â∞èÊó∂
                       {
                         print out_list
                       }  
@@ -115,9 +114,9 @@ CODE_DIR='/data/match/orig/profile'
                         print out_list
                       }
                   }
-                  else if (user_type==0)  #–¬”√ªß
+                  else if (user_type==0)  #Êñ∞Áî®Êà∑
                   {
-                      if ((is_subscribed=="06")&&(prior_time==last_time)&&((c-b-259200) > 0))  #–¬”√ªß£¨µ±«∞◊¥Ã¨Œ™∂©π∫£¨µ±«∞ ±º‰-◊ÓΩ¸“ª¥Œ∂©π∫ ±º‰>72–° ±
+                      if ((is_subscribed=="06")&&(prior_time==last_time)&&((c-b-259200) > 0))  #Êñ∞Áî®Êà∑ÔºåÂΩìÂâçÁä∂ÊÄÅ‰∏∫ËÆ¢Ë¥≠ÔºåÂΩìÂâçÊó∂Èó¥-ÊúÄËøë‰∏ÄÊ¨°ËÆ¢Ë¥≠Êó∂Èó¥>72Â∞èÊó∂
                       {
                         print out_list
                       } 
@@ -125,16 +124,17 @@ CODE_DIR='/data/match/orig/profile'
                       {
                         print out_list
                       }
-                      else if(prior_time<last_time)  #÷ÿ∏¥∂©π∫£®µ±‘¬ ◊¥Œ∂©π∫ ±º‰<◊Ó∫Û“ª¥Œ∂©π∫ ±º‰£©
+                      else if(prior_time<last_time)  #ÈáçÂ§çËÆ¢Ë¥≠ÔºàÂΩìÊúàÈ¶ñÊ¨°ËÆ¢Ë¥≠Êó∂Èó¥<ÊúÄÂêé‰∏ÄÊ¨°ËÆ¢Ë¥≠Êó∂Èó¥Ôºâ
                       {
                         print out_list
                       }
                  }
               
+              
             }
           }' $FILE_NODIST $FILE_APP_CODE $DATA_FILE  >$TARGET_FILE
-         # ≥ˆ±®±ÌΩ·π˚
-          qiangxiang_outSucc_file=/data/match/orig/mm7/$V_DATE/stats_month.wuxian_qianxiang.1000
+         # Âá∫Êä•Ë°®ÁªìÊûú
+          qiangxiang_outSucc_file=/data/match/orig/mm7/$V_DATE/stats_month.wuxian_qianxiang.0
           awk -F'[|,]' '{
                    
                   if(FILENAME=="'$FILE_APP_CODE'")
@@ -145,18 +145,18 @@ CODE_DIR='/data/match/orig/profile'
                   {
                      userid=$1
                      appcode=$2
-                     # œ¬∑¢¥Œ ˝
+                     # ‰∏ãÂèëÊ¨°Êï∞
                      sendnum=$3
                      USER_NUM[userid"|"appcode]=sendnum
                   }
-                  else if( ( USER_NUM[$1"|"$2]>(0/2) &&  $2 != "10511055"	&& $2 != "10511052"	&& $2 != "10511003"	&& $2 != "10511004"	&& $2 != "10511050"	&& $2 != "10511005"	&& $2 != "10511019"	&& $2 != "10511020"	&& $2 != "10511022"	&& $2 != "10511051" ) || ( $2 == "10511055" )	|| ( $2 == "10511052"	) || ( $2 == "10511003"	 ) || ( $2 == "10511004" )	|| ( $2 == "10511050" )	|| ( $2 == "10511005" )	|| ($2 == "10511019")	|| ( $2 == "10511020"	) || ($2 == "10511022")	|| ($2 == "10511051") )# ∞¸‘¬”√ªß”–µ•Ãıπ˝∏ﬂµƒœﬁ÷∆«“≤ªŒ™≤ ∏ƒ∂Ãµƒ“µŒÒ£®10511055	10511052	10511003	10511004	10511050	10511005	10511019	10511020	10511022	10511051£©£¨ªÚ’ﬂŒ™≤ ∏ƒ∂Ãµƒ“µŒÒ÷±Ω” ‰≥ˆ£¨≤ªœﬁ÷∆µ•∏ﬂ 
+                  else if(USER_NUM[$1"|"$2]>=(app[$2]/2))# ÂåÖÊúàÁî®Êà∑ÊúâÂçïÊù°ËøáÈ´òÁöÑÈôêÂà∂
                    {
                        prov_name=$4
                        prov_code=$5
                        appcode=$2
                        city=$6
                        city_code=$7
-                       chanel=(length($8)>0) ? $8:"Œ¥÷™"
+                       chanel=(length($8)>0) ? $8:"Êú™Áü•"
                        province_appcode[prov_code","prov_name","appcode]++
 
                        city_appcode[prov_code","prov_name","city_code","city","appcode]++
@@ -170,25 +170,25 @@ CODE_DIR='/data/match/orig/profile'
                     }  
                }END{
 
-           		printf("%s\n","provinceno,province,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_province.csv"
-           		printf("%s\n","provinceno,province,citycode,city,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_city.csv"
-           		printf("%s\n","provinceno,province,appcode,channel,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_chanel_province.csv"
-          		printf("%s\n", "provinceno,province,citycode,city,appcode,channel,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_chanel_city.csv"
-                        printf("%s\n","all,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_mms_pay_country.csv"
+           		printf("%s\n","provinceno,province,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_smswz_pay_province.csv"
+           		printf("%s\n","provinceno,province,citycode,city,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_smswz_pay_city.csv"
+           		printf("%s\n","provinceno,province,appcode,channel,feeusers") >"'$TARGET_DIR'/qiangxiang_smswz_pay_chanel_province.csv"
+          		printf("%s\n", "provinceno,province,citycode,city,appcode,channel,feeusers") >"'$TARGET_DIR'/qiangxiang_smswz_pay_chanel_city.csv"
+                        printf("%s\n","all,appcode,feeusers") >"'$TARGET_DIR'/qiangxiang_smswz_pay_country.csv"
                 for(name in province_appcode){
-                      printf("%s,%d\n",name,province_appcode[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_province.csv"
+                      printf("%s,%d\n",name,province_appcode[name]) >>"'$TARGET_DIR'/qiangxiang_smswz_pay_province.csv"
                     }
                 for(name in city_appcode){
-                     printf("%s,%d\n",name,city_appcode[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_city.csv"
+                     printf("%s,%d\n",name,city_appcode[name]) >>"'$TARGET_DIR'/qiangxiang_smswz_pay_city.csv"
                     }
                 for(name in province_chanel){
-                    printf("%s,%d\n",name,province_chanel[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_chanel_province.csv"
+                    printf("%s,%d\n",name,province_chanel[name]) >>"'$TARGET_DIR'/qiangxiang_smswz_pay_chanel_province.csv"
                   }
                 for(name in city_appcode_chanel){
-                     printf("%s,%d\n",name,city_appcode_chanel[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_chanel_city.csv"
+                     printf("%s,%d\n",name,city_appcode_chanel[name]) >>"'$TARGET_DIR'/qiangxiang_smswz_pay_chanel_city.csv"
                  }
                 for(name in country){
-                     printf("%s,%s,%d\n","all",name,country[name]) >>"'$TARGET_DIR'/qiangxiang_mms_pay_country.csv"
+                     printf("%s,%s,%d\n","all",name,country[name]) >>"'$TARGET_DIR'/qiangxiang_smswz_pay_country.csv"
                  }
 
             }' $FILE_APP_CODE $qiangxiang_outSucc_file $TARGET_FILE
