@@ -1,0 +1,2 @@
+FIELDS="phone, start_time, end_time, prior_time, last_time, is_active, prov, city, servcode, appcode, subcodes, expire_time, pause_reason"
+手机号|appcode|订购状态06在线07退订|订购时间或者退订时间需要根据$4判断|用户订购时间|用户本月最后一次订购时间|是否激活1为激活|省代码|地市代码|子业务代码|订购渠道1 |订购渠道2 | 订购渠道3 |servcode|长代码端口号|订购指令|未知|未知|过期时间|暂停原因
