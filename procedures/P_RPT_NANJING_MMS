@@ -1,0 +1,316 @@
+create or replace procedure P_RPT_NANJING_MMS
+(
+ v_txdate IN VARCHAR2,--输入系统时间前一日，也为报表统计日期
+ v_retcode OUT NUMBER
+)
+
+--select * from tb_theory_income_base
+--select * from tb_rpt_all_month_lj where proid='999' and deal_date='2017-01'
+--获取无线业务前向业务KPI月统计数量
+ is
+       v_isnewmonth varchar2(2);
+       v_thisday_firstday varchar2(20);
+       v_thisday_nextday varchar2(20);
+       v_thisday_lastday1 varchar2(20);
+       v_thisday_lastday2 varchar2(20);
+       v_thisday_lastday3  varchar2(20);
+
+       v_thisday_firstday_S varchar2(14);
+       v_thisday_firstday_S0 varchar2(14);
+       v_thisday_lastday_S varchar2(14);
+       v_thisday_lastday_S1 varchar2(14);
+       v_thisday_lastday_S2 varchar2(14);
+    
+begin
+   -- v_isnewmonth:=substr(to_char(v_txdate,'yyyy-mm-dd'),9,2);
+    v_thisday_firstday := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD'),'YYYY-MM-DD');
+    v_thisday_nextday := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')+1,'YYYY-MM-DD');
+    v_thisday_lastday1 := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')-1,'YYYY-MM-DD');
+    v_thisday_lastday2 := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')-2,'YYYY-MM-DD');
+      v_thisday_lastday3 := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')-3,'YYYY-MM-DD');
+     v_thisday_firstday_S := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD'),'YYYYMMDD')||'000000';
+     v_thisday_firstday_S0 := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')+1,'YYYYMMDD')||'000000';
+    v_thisday_lastday_S1 := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')-1,'YYYYMMDD')||'000000';
+    v_thisday_lastday_S2 := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')-2,'YYYYMMDD')||'000000';
+    --v_thisday_lastday_S3 := TO_CHAR(TO_DATE(v_txdate,'YYYY-MM-DD')-3,'YYYYMMDD')||'000000';
+    v_isnewmonth:= TO_CHAR(substr(v_thisday_firstday,9,2));
+
+    /*--判断是否为跨月周
+     if ( substr(i_end_date,6,2) - substr (i_begin_date,6,2)) >0 and (substr(i_end_date,1,4) - substr (i_begin_date,1,4))>0
+
+            v_iskyday := '1';
+      else
+
+            v_iskyday := '0';
+      end if;
+      11	2017-06-30	全国	-4485	39.8148	3764.7191	34.8151	-6081		
+12	2017-06-30	江苏	559	5.289	266.1948	4.1009	460		
+13	2017-07-01	全国	-11090		1918.58915	35.3232			
+14	2017-07-01	江苏	-42		58.5395	2.867			
+ */
+  EXECUTE IMMEDIATE 'TRUNCATE TABLE tmp_rpt_nanjing_mms_day';
+
+  DELETE FROM PTJ.tb_rpt_nanjing_mms_day WHERE deal_date=v_thisday_firstday ;
+
+  COMMIT;
+
+--select * from tmp_rpt_nanjing_mms_day
+--插入当日新增计费用户数
+insert into tmp_rpt_nanjing_mms_day
+  ( deal_date,
+    area,
+    new_jfuser -- 新增计费用户数=当日包月计费用户数+点播计费用户数-前日日包月计费用户数+点播计费用户数
+   )
+
+  select  v_thisday_firstday,b.area,sum(b.xzyh) from
+  (select '全国' area, sum(t.new_user_num)-sum(t.td_user_num) xzyh from tb_rpt_oper_day t ,opt_code o  where deal_date=v_thisday_lastday1  and t.oper_code=o.opt_type and o.report_class>=1 and o.report_class<=4
+  --union all
+  --select sum(t.jf_user_num) xzyh from tb_rpt_wzjst_day t where deal_date=v_thisday_lastday2 and t.prov_name='广东'
+  union all
+  select  '江苏' area,sum(t.new_user_num)-sum(t.td_user_num) xzyh from tb_rpt_oper_day t where deal_date=v_thisday_lastday1 and t.prov_name='江苏'
+     ) b  group by area
+ ;
+ --插入前一日新增计费用户数
+insert into tmp_rpt_nanjing_mms_day
+  ( deal_date,
+    area,
+   ago_jfuser -- 新增计费用户数=当日包月计费用户数+点播计费用户数-前日日包月计费用户数+点播计费用户数
+   )
+
+  select  v_thisday_firstday,b.area,sum(b.xzyh) from
+  (select '全国' area, sum(t.new_user_num)-sum(t.td_user_num)  xzyh from tb_rpt_oper_day t ,opt_code o  where deal_date=v_thisday_lastday2  and t.oper_code=o.opt_type and o.report_class>=1 and o.report_class<=4
+  --union all
+  --select sum(t.jf_user_num) xzyh from tb_rpt_wzjst_day t where deal_date=v_thisday_lastday2 and t.prov_name='广东'
+  union all
+  select  '江苏' area,sum(t.new_user_num)-sum(t.td_user_num)  xzyh from tb_rpt_oper_day t where deal_date=v_thisday_lastday2 and t.prov_name='江苏'
+    ) b  group by area ;
+ 
+  COMMIT;
+  
+  
+if v_isnewmonth !='01' and v_isnewmonth !='02' then
+--插入当日点播收入
+insert into tmp_rpt_nanjing_mms_day
+  ( deal_date,
+    area,
+    new_dbincome -- 新增点播收入 
+   )
+   select
+     v_thisday_firstday, area_a, sum(sj_byxxf) ljxxf  from
+(
+    select '全国' area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday1 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7)
+  union all
+  select '全国' area_a, -sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday2 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7)
+  union all
+
+   select '江苏' area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday1 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7) and m.province='江苏'
+union all
+
+   select '江苏' area_a, -sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday2 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7) and m.province='江苏'
+
+) group by area_a ;
+ /* select  '全国' area,  count(distinct s.receiver) xzyh --,count(case when errordetail='0' then s.receiver end),count(case when errordetail='0' then s.receiver end)*b.fee
+   from s200808_temp s, tb_theory_income_base_dianbo b  
+  where  errordetail='0' and dealtime >= v_thisday_lastday_S1 and dealtime < v_thisday_firstday_S and s.serviceid=b.appcode
+ union all
+  select  '江苏' area,  count(distinct s.receiver) xzyh --,count(case when errordetail='0' then s.receiver end),count(case when errordetail='0' then s.receiver end)*b.fee
+   from s200808_temp s, tb_theory_income_base_dianbo b ,mobilenodist m
+where errordetail='0'  and m.province='江苏' and substr(s.receiver,1,7)=m.beginno  and dealtime >= v_thisday_lastday_S1 and dealtime < v_thisday_firstday_S and s.serviceid=b.appcode
+*/
+
+COMMIT;
+ 
+--插入前一日日点播收入
+insert into tmp_rpt_nanjing_mms_day
+  ( deal_date,
+    area,
+    ago_dbincome -- 新增点播收入 
+   )
+   select
+     v_thisday_firstday, area_a, sum(sj_byxxf) ljxxf  from
+(
+    select '全国' area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday2 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7)
+  union all
+  select '全国' area_a, -sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday3 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7)
+  union all
+
+   select '江苏' area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday2 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7) and m.province='江苏'
+union all
+
+   select '江苏' area_a, -sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday3 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7) and m.province='江苏'
+
+) group by area_a ;
+COMMIT;
+end if;
+
+
+
+if v_isnewmonth ='01' or v_isnewmonth ='02' then
+
+--插入当日点播收入
+insert into tmp_rpt_nanjing_mms_day
+  ( deal_date,
+    area,
+    new_dbincome -- 新增点播收入 
+   )
+   select
+     v_thisday_firstday, area_a, sum(sj_byxxf) ljxxf  from
+(
+    select  '全国' area_a, sum(m.llsr) sj_byxxf from
+(select  m.province, b.appcode, nvl(count(case when errordetail='0' then s.receiver end),0)*b.fee llsr
+from s200808_temp s, tb_theory_income_base_dianbo b ,mobilenodist m
+where substr(s.receiver,1,7)=m.beginno and dealtime >= v_thisday_firstday_S and dealtime < v_thisday_firstday_S0 and s.serviceid=b.appcode
+group by m.province ,b.appcode,b.fee ) m
+
+union all
+
+select  '江苏' area_a, sum(llsr) sj_byxxf from
+(select  m.province, b.appcode, nvl(count(case when errordetail='0' then s.receiver end),0)*b.fee llsr
+from s200808_temp s, tb_theory_income_base_dianbo b ,mobilenodist m
+where substr(s.receiver,1,7)=m.beginno and dealtime >=v_thisday_firstday_S and dealtime < v_thisday_firstday_S0 and s.serviceid=b.appcode  and m.province='江苏'
+group by m.province ,b.appcode,b.fee )
+group by province 
+) group by area_a ;
+COMMIT;
+
+
+insert into tmp_rpt_nanjing_mms_day
+  ( deal_date,
+    area,
+    ago_dbincome -- 新增点播收入 
+   )
+   select
+     v_thisday_firstday, area_a, sum(sj_byxxf) ljxxf  from
+(
+    select '全国' area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday2 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7)
+  union all
+  select '全国' area_a, -sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday3 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7)
+  union all
+
+   select '江苏' area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday2 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7) and m.province='江苏'
+union all
+
+   select '江苏' area_a, -sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday3 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7) and m.province='江苏'
+
+) group by area_a ;
+COMMIT;
+
+
+end if;
+
+ ---插入本月累计前向预估包月信息费+点播信息费 如果是月初第一天
+if v_isnewmonth ='01' or v_isnewmonth ='02'   then
+insert into tmp_rpt_nanjing_mms_day
+
+  ( deal_date,
+    area,
+    month_income --预估包月信息费
+   )
+select
+     v_thisday_firstday, area_a, sum(sj_byxxf) ljxxf  from
+(
+select '全国' area_a,sum(nvl(t.on_jfuser_num,0)*o.fee) sj_byxxf from tb_rpt_oper_day t, opt_code o where t.deal_date=v_thisday_firstday and  t.oper_code=o.opt_type and o.report_class >=1 and o.report_class <=2 and substr(o.jfcode,1,1)='1'
+union all
+select '江苏' area_a,sum(nvl(t.on_jfuser_num,0)*o.fee)  sj_byxxf from tb_rpt_oper_day t, opt_code o where t.deal_date=v_thisday_firstday and t.prov_name ='江苏' and  t.oper_code=o.opt_type and o.report_class >=1 and o.report_class <=2 and substr(o.jfcode,1,1)='1'
+union all
+--select '全国' area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday1 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7)
+--union all
+--select '江苏'area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday1 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7) and m.province='江苏'
+
+select  '全国' area_a, sum(m.llsr) sj_byxxf from
+(select  m.province, b.appcode, nvl(count(case when errordetail='0' then s.receiver end),0)*b.fee llsr
+from s200808_temp s, tb_theory_income_base_dianbo b ,mobilenodist m
+where substr(s.receiver,1,7)=m.beginno and dealtime >= v_thisday_firstday_S and dealtime < v_thisday_firstday_S0 and s.serviceid=b.appcode
+group by m.province ,b.appcode,b.fee ) m
+
+union all
+
+select  '江苏' area_a, sum(llsr) sj_byxxf from
+(select  m.province, b.appcode, nvl(count(case when errordetail='0' then s.receiver end),0)*b.fee llsr
+from s200808_temp s, tb_theory_income_base_dianbo b ,mobilenodist m
+where substr(s.receiver,1,7)=m.beginno and dealtime >=v_thisday_firstday_S and dealtime < v_thisday_firstday_S0 and s.serviceid=b.appcode  and m.province='江苏'
+group by m.province ,b.appcode,b.fee )
+group by province
+
+) m
+group by  m.area_a ;
+COMMIT;
+end if;
+
+
+if v_isnewmonth !='01' and v_isnewmonth !='02' then
+insert into tmp_rpt_nanjing_mms_day
+
+  ( deal_date,
+    area,
+    month_income --预估包月信息费
+   )
+select
+     v_thisday_firstday, area_a, sum(sj_byxxf) ljxxf  from
+(
+
+select  '全国' area_a,
+         a.v_new_user_num  sj_byxxf
+  from table(umg_stat_new.StatTheoryIncomeInfo(TO_CHAR(TO_DATE(v_thisday_lastday1,'YYYY-MM-DD')-1,'YYYY-MM-DD'),
+                                               '901808',
+                                               '999',
+                                               '所有业务',
+                                               '2')) a , opt_code b where a.V_PX_USER_NUM=b.appcode and b.report_class >=1 and b.report_class <=4
+ union all
+select  '全国' area_a,
+        c.v_new_user_num  sj_byxxf
+  from table(umg_stat_new.StatTheoryIncomeInfo(TO_CHAR(TO_DATE(v_thisday_lastday1,'YYYY-MM-DD')-1,'YYYY-MM-DD'),
+                                               '801174',
+                                               '999',
+                                               '所有业务',
+                                               '2')) c  , opt_code b where c.V_PX_USER_NUM=b.appcode and b.report_class >=1 and b.report_class <=4
+   union all
+
+select  '江苏' area_a,
+         a.v_new_user_num  sj_byxxf
+  from table(umg_stat_new.StatTheoryIncomeInfo(TO_CHAR(TO_DATE(v_thisday_lastday1,'YYYY-MM-DD')-1,'YYYY-MM-DD'),
+                                               '901808',
+                                               '999',
+                                               '所有业务',
+                                               '2')) a , opt_code b where a.v_prov_code='江苏' and  a.V_PX_USER_NUM=b.appcode  and b.report_class >=1 and b.report_class <=4
+ union all
+select  '江苏' area_a,
+        c.v_new_user_num  sj_byxxf
+  from table(umg_stat_new.StatTheoryIncomeInfo(TO_CHAR(TO_DATE(v_thisday_lastday1,'YYYY-MM-DD')-1,'YYYY-MM-DD'),
+                                               '801174',
+                                               '999',
+                                               '所有业务',
+                                               '2')) c  , opt_code b where  c.v_prov_code='江苏' and  c.V_PX_USER_NUM=b.appcode and b.report_class >=1 and b.report_class <=4
+  union all
+   select '全国' area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday1 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7)
+
+  union all
+   select '江苏'area_a, sum(t.totals*b.fee) sj_byxxf from tmp_dianbo_day t, tb_theory_income_base_dianbo  b ,mobilenodist m where deal_date=v_thisday_lastday1 and t.appcode=b.appcode and m.beginno=substr(t.mobile,1,7) and m.province='江苏'
+) m
+group by  m.area_a ;
+COMMIT;
+end if;
+---汇总日报
+INSERT INTO tb_rpt_nanjing_mms_day
+(
+  deal_date,
+  area,
+  new_jfuser,
+  new_dbincome,
+  ago_jfuser,
+  ago_dbincome,
+  month_income
+)
+SELECT
+   deal_date,
+   area,
+   SUM(new_jfuser),
+   SUM(new_dbincome)/10000,
+   SUM(ago_jfuser),
+   SUM(ago_dbincome)/10000,
+   SUM(month_income)/10000 
+FROM  tmp_rpt_nanjing_mms_day where deal_date=v_thisday_firstday
+GROUP BY  deal_date,area ;
+
+ COMMIT;
+end P_RPT_NANJING_MMS;
