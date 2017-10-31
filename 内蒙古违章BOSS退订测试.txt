@@ -1,0 +1,103 @@
+在BOSS端退订（.7.1服务器操作）
+密码12580gateway
+文件目录
+按照这次给的文件规范传至/data0/12580/api/all_server_qx/qx_data目录下即可！
+执行方式
+/data0/12580/api/all_server_qx/目录下运行 php url_nmg_wz.php 文件名（不带.txt），即可！
+日志查询
+/data0/12580/api/all_server_qx/log_nmg_wz目录下查询即可！
+cd /data/data0/12580/api/all_server_qx
+
+php url_nmg_wz.php nmg_wz
+
+#!/usr/local/bin/php
+<?php
+define('PATH',dirname(__FILE__));    
+define('PATH_LOG',PATH.'/log_nmg_wz');
+$cron_action = $_SERVER['argv']['1'];
+if(empty($cron_action)){
+echo 'file_name is empty!';
+exit;	
+}
+if(!file_exists('qx_data/'.$cron_action.'.txt')){
+echo 'file is null!';
+exit;	
+}
+$fp = fopen('qx_data/'.$cron_action.'.txt',"r");
+$i = 0;
+while(!feof($fp)){	
+  $data = fgets($fp);
+  //没有了就弹出
+  if(substr($data,0,1) == '')
+  continue;
+  //分解
+  $data_array = explode('	',$data);
+  
+  //过滤下前后空白
+  $data_mobile = trim($data_array['0']);
+  $data_code = trim($data_array['1']);
+  $data_act = trim($data_array['2']);
+  $boss_data = post_proxy_data($data_mobile,$data_code,$data_act,'R1');
+  echo $data_mobile.'|'.$data_code.'|'.$boss_data."\n"; 
+  echo $i++."\n"; 
+  usleep(125000); 
+}
+fclose($fp);
+
+
+/*
+   post 内容格式
+   "id": 手机号码,
+   "opt_name":业务名称
+   "source":来源
+   "oprcode": 操作码(具体见后表),
+   "efftime": 生效日期(格式为YYYYMMDDHHMISS)
+   'feetype':'0'
+   为了2009月3月11日 ftp传送使用，增加feetype
+
+ */
+function post_proxy_data($id,$bizcode,$oprcode,$source='R1',$efftime='',$feetype='2'){
+ 
+  $efftime = date('YmdHis',strtotime($efftime)) ; 
+  if(substr($bizcode,0,1) == '-' ){
+    $spid = '901808';
+  }else{
+    $spid = '801174';
+  }
+
+
+  $str = array('id'=>$id,'oprcode'=>$oprcode,'efftime'=>$efftime,'spid'=>$spid,'bizcode'=>$bizcode,'feetype'=>$feetype,'source'=>$source);
+ 
+  $post_str = json_encode($str);
+  // echo $post_str;exit;
+  $ret = _curl_post($post_str);
+ // echo  $ret;exit;
+  $result = strip_tags($ret);
+  qx_log($id.'|'.$bizcode.'|'.$source.'|'.$oprcode.'|'.$result); 
+  return $result;
+}
+
+
+
+function _curl_post($str){
+  if(!empty($str)){
+    $ch2 = curl_init();
+    curl_setopt($ch2, CURLOPT_URL,'http://192.100.6.247:7004/transaction');
+    curl_setopt($ch2, CURLOPT_POST, 1 );
+    curl_setopt($ch2, CURLOPT_POSTFIELDS, $str);
+    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, 1);
+    $val = curl_exec($ch2);
+    curl_close($ch2);
+  }
+  return $val;
+
+}
+
+
+function qx_log($log_info){
+    $open_filename = fopen(PATH_LOG.'/'.date('Y-m-d',time()).'.log','a+');
+    fwrite($open_filename,date('Y-m-j H:i:s').'|'.$log_info."\n");    
+    fclose($open_filename); 
+}
+
+?>
