@@ -1,0 +1,8 @@
+select * from  R200904 
+
+ create table R200904_201710 as 
+ select * from R200904 where dealtime <'20171001000000'
+ create table R200904_tmp as 
+ select * from R200904 where dealtime>='20171001000000'
+ drop table R200904
+rename R200904_tmp as R200904
