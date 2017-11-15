@@ -6,7 +6,7 @@ iconv -f UTF-8  -t GB18030 -c   /data/wuying/S200808_uf8temp_20160608.txt  > /da
 scp /data/wuying/RSDATA/S200808_temp_20150522.txt oracle@192.100.7.27:/home/oracle/etl/data/S200808_temp.txt 
 
 然后到27上执行 
-sh /home/oracle/etl/bin/ldr_s200808_temp_new_bc.sh (注意这里是对表数据追加方式，如果重复执行会重复追加入库。)
+sh /home/oracle/etl/bin/ldr_s200808_temp_new_bc.sh 20171113(时间串为需要增加的点播日期，即s200808里边dealtime的字段) (注意这里是对表数据追加方式，如果重复执行会重复追加入库。)
 --------------------然后以 s200808_temp表为蓝本重新生成表WANGYUAN_TMP
     create table WANGYUAN_TMP
 (
