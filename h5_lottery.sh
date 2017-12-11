@@ -1,3 +1,4 @@
+#7.21上
 #!/bin/bash
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/gateway/bin:/data/www/;
 export PATH
