@@ -1,0 +1,1 @@
+ls a/*.tar.gz|awk '{print $NF}' | xargs -t -i tar -xzf {} -C b
