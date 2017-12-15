@@ -1,0 +1,1 @@
+awk '/Marry/{count++}END{print "Marry was found " count " times."}' employees2
