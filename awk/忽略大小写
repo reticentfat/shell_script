@@ -1,0 +1,2 @@
+BEGIN{IGNORECASE=1}
+//忽略大小写
