@@ -9,7 +9,7 @@ $exp_dir = "/data/www/cron/";
 $out_dir = "/data/www/cron/down/data/";
 $file_name = date("YmdH")."_YHJ.txt";
 $exp_name = "YHJ.txt";
-$conn = mysql_connect('192.100.7.45:3306','w_master_db','iWrQj4pdr4t9fNDc')
+$conn = mysql_connect('192.100.7.45:3306','w##b','i##c')
 or die("Could not connect: " . mysql_error());
 mysql_query("SET NAMES 'utf-8'");
 mysql_select_db("caipiaoManage_ef");
