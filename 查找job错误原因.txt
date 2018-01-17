@@ -1,0 +1,118 @@
+oracle@wreport:/home/oracle/etl/bin$ sqlplus sys/1##### as sysdba
+
+SQL*Plus: Release 11.2.0.4.0 Production on 星期三 1月 17 18:29:54 2018
+
+Copyright (c) 1982, 2013, Oracle.  All rights reserved.
+
+
+连接到: 
+Oracle Database 11g Enterprise Edition Release 11.2.0.4.0 - 64bit Production
+With the Partitioning, OLAP, Data Mining and Real Application Testing options
+
+SQL> show parameter background_dump_dest;
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+background_dump_dest		     string	 /data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace
+---然后在/data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace找到alert_wreportdb.log匹配任务199
+oracle@wreport:/data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace$ cat alert_wreportdb.log | tail -100
+ORA-06512: 在 "PTJ.P_RPT_ALL_WEEK_OPERNAME", line 571
+ORA-06512: 在 line 8
+Wed Jan 17 16:45:35 2018
+Thread 1 cannot allocate new log, sequence 15426
+Private strand flush not complete
+  Current log# 8 seq# 15425 mem# 0: /data/app/oracle/oradata/wreportdb/redo08.log
+Thread 1 advanced to log sequence 15426 (LGWR switch)
+  Current log# 2 seq# 15426 mem# 0: /data/app/oracle/oradata/wreportdb/redo02.log
+Wed Jan 17 16:45:44 2018
+Archived Log entry 15351 added for thread 1 sequence 15425 ID 0xa6420f86 dest 1:
+Wed Jan 17 16:45:51 2018
+Errors in file /data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace/wreportdb_j000_12144.trc:
+ORA-12012: 自动执行作业 5 出错
+ORA-01722: 无效数字
+ORA-06512: 在 "PTJ.P_RPT_ALL_WEEK_OPERNAME", line 571
+ORA-06512: 在 line 8
+Wed Jan 17 17:01:07 2018
+Errors in file /data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace/wreportdb_ora_4297.trc:
+ORA-12012: 自动执行作业 199 出错
+ORA-01722: 无效数字
+ORA-06512: 在 "PTJ.P_RPT_NANJING_MMS", line 242
+ORA-06512: 在 line 7
+Wed Jan 17 17:03:25 2018
+Errors in file /data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace/wreportdb_ora_4297.trc:
+ORA-12012: 自动执行作业 199 出错
+ORA-01722: 无效数字
+ORA-06512: 在 "PTJ.P_RPT_NANJING_MMS", line 242
+ORA-06512: 在 line 7
+Wed Jan 17 17:14:30 2018
+
+
+***********************************************************************
+
+Fatal NI connect error 12170.
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.4.0 - Production
+	Oracle Bequeath NT Protocol Adapter for Linux: Version 11.2.0.4.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.4.0 - Production
+  Time: 17-1月 -2018 17:14:30
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12535
+    
+TNS-12535: TNS: 操作超时
+    ns secondary err code: 12560
+    nt main err code: 505
+    
+TNS-00505: 操作超时
+    nt secondary err code: 110
+    nt OS err code: 0
+  Client address: (ADDRESS=(PROTOCOL=tcp)(HOST=172.16.24.108)(PORT=1318))
+Wed Jan 17 17:16:11 2018
+
+
+***********************************************************************
+
+Fatal NI connect error 12170.
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.4.0 - Production
+	Oracle Bequeath NT Protocol Adapter for Linux: Version 11.2.0.4.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.4.0 - Production
+  Time: 17-1月 -2018 17:16:11
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12535
+    
+TNS-12535: TNS: 操作超时
+    ns secondary err code: 12560
+    nt main err code: 505
+    
+TNS-00505: 操作超时
+    nt secondary err code: 110
+    nt OS err code: 0
+  Client address: (ADDRESS=(PROTOCOL=tcp)(HOST=172.16.24.108)(PORT=1324))
+Wed Jan 17 17:18:38 2018
+Errors in file /data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace/wreportdb_j001_16629.trc:
+ORA-12012: 自动执行作业 179 出错
+ORA-01722: 无效数字
+ORA-06512: 在 "PTJ.P_RPT_ALL_DAY_OPERNAME", line 142
+ORA-06512: 在 line 7
+Wed Jan 17 17:18:39 2018
+Errors in file /data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace/wreportdb_j000_16564.trc:
+ORA-12012: 自动执行作业 5 出错
+ORA-01722: 无效数字
+ORA-06512: 在 "PTJ.P_RPT_ALL_WEEK_OPERNAME", line 571
+ORA-06512: 在 line 8
+Wed Jan 17 17:20:17 2018
+Errors in file /data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace/wreportdb_j000_16701.trc:
+ORA-12012: 自动执行作业 179 出错
+ORA-01722: 无效数字
+ORA-06512: 在 "PTJ.P_RPT_ALL_DAY_OPERNAME", line 142
+ORA-06512: 在 line 7
+Wed Jan 17 18:23:29 2018
+Errors in file /data/app/oracle/diag/rdbms/wreportdb/wreportdb/trace/wreportdb_j000_24871.trc:
+ORA-12012: 自动执行作业 5 出错
+ORA-01722: 无效数字
+ORA-06512: 在 "PTJ.P_RPT_ALL_WEEK_OPERNAME", line 571
+ORA-06512: 在 line 8
