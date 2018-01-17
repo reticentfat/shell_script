@@ -1,3 +1,4 @@
+http://www.orafaq.com/wiki/Alert_log
 oracle@wreport:/home/oracle/etl/bin$ sqlplus sys/1##### as sysdba
 
 SQL*Plus: Release 11.2.0.4.0 Production on 星期三 1月 17 18:29:54 2018
