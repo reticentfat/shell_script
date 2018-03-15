@@ -31,6 +31,15 @@ $log_fp_path =$download_dir.'log/'.$argv[1].'/'.$p_name.'/'.'data_fp_'.$argv[1].
 
 if(!is_dir($download_dir.'log/'.$argv[1].'/'.$p_name)){
     mkdir($download_dir.'log/'.$argv[1].'/'.$p_name,0777,true);
+//资费
+if($argv[1]=='general_1'){
+    $CAR_BJ_WZCX_FEE_CODE = $CAR_BJ_WZCX_FEE_A_CODE;
+}elseif($argv[1]=='general_2'){
+     $CAR_BJ_WZCX_FEE_CODE = $CAR_BJ_WZCX_FEE_B_CODE;
+}elseif($argv[1]=='general_3'){
+     $CAR_BJ_WZCX_FEE_CODE = $CAR_BJ_WZCX_FEE_C_CODE;
+}elseif($argv[1]=='general_4'){
+     $CAR_BJ_WZCX_FEE_CODE = $CAR_BJ_WZCX_FEE_D_CODE;
 }
 
 if( is_file($download_dir.'M100805/'.$argv[1].'/'.$p_name.'/'.$c_name.'/'.'data_'.$argv[1].'.txt')){
@@ -50,7 +59,7 @@ if( is_file($download_dir.'M100805/'.$argv[1].'/'.$p_name.'/'.$c_name.'/'.'data_
     
     if($i == 50){
         $str_50 = trim($str_50,',');
-        $ret_val =  send_msg_group_python($interface_type='1',$send_msg,$CAR_BJ_WZCX_FEE_E_CODE,$str_50,$mt_long_code,'0','010','','1',$auto_long_msg_type);
+        $ret_val =  send_msg_group_python($interface_type='1',$send_msg,$CAR_BJ_WZCX_FEE_CODE,$str_50,$mt_long_code,'0','010','','1',$auto_long_msg_type);
         $time_1 = date('Y-m-d H:i:s');
         fwrite($log_fp,$str_50."\t".$time_1."\t".$ret_val."\n");
         $i = 0;
@@ -63,7 +72,7 @@ if( is_file($download_dir.'M100805/'.$argv[1].'/'.$p_name.'/'.$c_name.'/'.'data_
   }
   if($i != 0 || $i != 1){
         $str_50 = trim($str_50,',');
-        $ret_val =  send_msg_group_python($interface_type='1',$send_msg,$CAR_BJ_WZCX_FEE_E_CODE,$str_50,$mt_long_code,'0','010','','1',$auto_long_msg_type);
+        $ret_val =  send_msg_group_python($interface_type='1',$send_msg,$CAR_BJ_WZCX_FEE_CODE,$str_50,$mt_long_code,'0','010','','1',$auto_long_msg_type);
         $time_1 = date('Y-m-d H:i:s');
         fwrite($log_fp,$str_50."\t".$time_1."\t".$ret_val."\n");
         $str_50 = '';
