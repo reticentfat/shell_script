@@ -1,2 +1,2 @@
- [[ $(date +'%d') -eq $(cal | awk '!/^$/{ print $NF }' | tail -1) ]] && job 1>/dev/null 2>&1
+02 01 28,29,30,31 * * [ `date +\%d` -eq `echo \`cal\` | awk '{print $NF}'` ] && touch /data/211/bin/test.log
  https://www.unix.com/shell-programming-and-scripting/19318-crontab-entry-run-every-last-day-month.html
