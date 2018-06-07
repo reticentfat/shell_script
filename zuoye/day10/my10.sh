@@ -11,7 +11,8 @@ awk  -F'\t' -v CODE_DIR=END_lat_lon_country_uniq -v fileok=weibo_locate.2018-05o
   1）最热门的国家签到排行（除中国）
 
     签到国家\t uniq的签到人数
-    cat weibo_locate.2018-05ok.txt | awk -F'|' '$3!="中国"&&$3!=""{print $2"|"$3}' | sort -u | awk -F'|' '{print $2}' | sort | uniq -c |sort -rn | awk '{print $2"\t"$1}' | head -10
+    #修改国家名称被空格过滤的问题
+    cat weibo_locate.2018-05ok.txt | awk -F'|' '$3!="中国"&&$3!=""{print $2"|"$3}' | sort -u | awk -F'|' '{print $2}' | sort | uniq -c |sort -rn |  awk '{print $2" "$3"\t"$1}' | head -10
 Japan 23446
 United 18392
 Thailand 15187
