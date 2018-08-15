@@ -1,0 +1,125 @@
+DROP PROCEDURE
+IF EXISTS `t_cursor_test`;
+DELIMITER ;;
+
+
+CREATE DEFINER = `root`@`%` PROCEDURE `t_cursor_test` ()
+BEGIN
+ declare v_storeid varchar(20);
+declare counter int ;
+	
+	DECLARE no int default 0;
+	declare cur cursor for 
+                      select DISTINCT storeCode from dxh_base.store where storeCode >10000 and  storeCode <10105 ;
+	declare CONTINUE HANDLER for not found set no = 1; #如果读取完，设置no为1
+  set counter = 0;# 计数，循环了几次
+	open cur;
+	  --  fetch cur into v_storeid;
+	while no <> 1 do
+set counter = counter +1;
+
+    -- set @date1 = d1;
+    -- set @date2 = d2;
+    -- delete from rpt_mem_come_day where storeid = v_storeid and  date >= d1 and date <= d2;
+		-- while @date1 <= @date2 DO
+      fetch cur into v_storeid;
+			select concat(v_storeid ,'-',counter,'-',no);
+ 
+			-- set @date1 = DATE_ADD(@date1,INTERVAL 1 day);
+		-- end while;
+
+		
+	end while;
+
+	close cur;
+
+			END;;
+DELIMITER ;
+----结果如下
+10101-1-0--10102-2-0--10104-5-1
+
+---------
+DROP PROCEDURE
+IF EXISTS `t_cursor_test`;
+DELIMITER ;;
+
+
+CREATE DEFINER = `root`@`%` PROCEDURE `t_cursor_test` ()
+BEGIN
+ declare v_storeid varchar(20);
+declare counter int ;
+	
+	DECLARE no int default 0;
+	declare cur cursor for 
+                      select DISTINCT storeCode from dxh_base.store where storeCode >10000 and  storeCode <10105 ;
+	declare CONTINUE HANDLER for not found set no = 1; #如果读取完，设置no为1
+  set counter = 0;# 计数，循环了几次
+	open cur;
+	  --  fetch cur into v_storeid;
+	while no <> 1 do
+set counter = counter +1;
+
+    -- set @date1 = d1;
+    -- set @date2 = d2;
+    -- delete from rpt_mem_come_day where storeid = v_storeid and  date >= d1 and date <= d2;
+		-- while @date1 <= @date2 DO
+      
+			select concat(v_storeid ,'-',counter,'-',no);
+fetch cur into v_storeid;
+ 
+			-- set @date1 = DATE_ADD(@date1,INTERVAL 1 day);
+		-- end while;
+
+		
+	end while;
+
+	close cur;
+
+			END;;
+DELIMITER ;
+-- call t_cursor_test()
+----结果如下
+null-1-0--10101-2-0--10104-5-1--10102-3-0--10104-5-0
+----------------------------
+DROP PROCEDURE
+IF EXISTS `t_cursor_test`;
+DELIMITER ;;
+
+
+CREATE DEFINER = `root`@`%` PROCEDURE `t_cursor_test` ()
+BEGIN
+ declare v_storeid varchar(20);
+declare counter int ;
+	
+	DECLARE no int default 0;
+	declare cur cursor for 
+                      select DISTINCT storeCode from dxh_base.store where storeCode >10000 and  storeCode <10105 ;
+	declare CONTINUE HANDLER for not found set no = 1; #如果读取完，设置no为1
+  set counter = 0;# 计数，循环了几次
+	open cur;
+	    fetch cur into v_storeid;
+	while no <> 1 do
+set counter = counter +1;
+
+    -- set @date1 = d1;
+    -- set @date2 = d2;
+    -- delete from rpt_mem_come_day where storeid = v_storeid and  date >= d1 and date <= d2;
+		-- while @date1 <= @date2 DO
+      -- select v_storeid ,counter,no;
+			select concat(v_storeid ,'-',counter,'-',no);
+fetch cur into v_storeid;
+ 
+			-- set @date1 = DATE_ADD(@date1,INTERVAL 1 day);
+		-- end while;
+
+		
+	end while;
+
+	close cur;
+
+			END;;
+DELIMITER ;
+-----结果如下---
+10101-1-0--10102-2-0--10103-3-0--10104-4-0
+结论应该用最后一种
+
