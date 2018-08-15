@@ -122,4 +122,10 @@ DELIMITER ;
 -----结果如下---
 10101-1-0--10102-2-0--10103-3-0--10104-4-0
 结论应该用最后一种
+-----------------------
+select DISTINCT storeCode from dxh_base.store where storeCode >10000 and  storeCode <10105
+10101
+10102
+10103
+10104
 
