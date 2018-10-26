@@ -1,0 +1,29 @@
+begin
+
+delete from rpt_mem_come_day where date = v_date and storeid = v_store_id;
+insert into rpt_mem_come_day
+SELECT v_store_id, DATE_FORMAT(ts,'%Y-%m-%d') day,count(face_id) cnt
+ FROM (
+       Select 
+				face_id,
+				DATE_FORMAT(FROM_UNIXTIME(ts/1000),'%Y-%m-%d %H:%i:%S') ts,
+				frame_url,str2
+				From 
+				(
+					Select t.*,
+					 if(@pdept = str2, @rank1 := @rank1 + 1,@rank1:= 1) as rank1,  
+					 @pdept := str2
+					 From (select faceid as face_id,ExternalID as face_reid,Time as ts,url as frame_url,
+                        PersonID as str2,age,Gender as sex from t_face_realcome 
+									where PersonID is not null and storeid = v_store_id
+                       and Time > UNIX_TIMESTAMP(CURRENT_DATE())*1000
+											 
+										 order by PersonID,Time  ) t,
+					 (select @rownum :=0 , @pdept := null ,@rank1:=0) b
+				) t0
+				Where rank1=1
+      ) u
+group by DATE_FORMAT(ts,'%Y-%m-%d')
+order by DATE_FORMAT(ts,'%Y-%m-%d');
+
+end
