@@ -1,0 +1,28 @@
+BEGIN
+
+	declare v_storeid varchar(20);
+	
+	declare done int default false;
+	declare cur cursor for 
+                      select DISTINCT storeCode from kingw_rpt.storeInfo;
+	declare continue HANDLER for not found set done = true;
+
+	open cur;
+	fetch cur into v_storeid;
+	while(not done) do
+
+    set @date1 = d1;
+    set @date2 = d2;
+    
+		while @date1 <= @date2 DO
+			call p_mem_face_day(v_storeid,@date1);
+			set @date1 = DATE_ADD(@date1,INTERVAL 1 day);
+		end while;
+
+		fetch cur into v_storeid;
+	end while;
+
+	close cur;
+  
+end
+-----------call p_mem_face_day2(CURRENT_DATE(),CURRENT_DATE())
