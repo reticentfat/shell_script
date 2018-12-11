@@ -1,0 +1,140 @@
+begin
+drop table if EXISTS t_mem_infobase_0;
+create table t_mem_infobase_0 as
+select 
+vendorid,
+memNo,
+mobileNo,
+memName,
+nickName,
+headImg,
+unionid,
+memPointAmount,
+balance,
+memPoint,
+creditLine,
+case when gender=1 then'男' when gender=0 then '女'  end sex,
+
+c.PROVINCE work_place,
+c.CITY work_city,
+
+d.PROVINCE native_place,
+d.CITY native_city,
+
+ifnull(
+birthday,
+Case When 
+            substr(memIDCardNo,7,4) > 1900 
+            And substr(memIDCardNo,7,4) < DATE_FORMAT(now(),'%Y')
+            And substr(memIDCardNo,11,2) <= 12
+            And substr(memIDCardNo,13,2) <= 31
+            And is_date(substr(memIDCardNo,7,8)) = 1
+     then DATE_FORMAT(substr(memIDCardNo,7,8),'%Y-%m-%d')
+     end 
+)as birthday,
+Case When  
+            substr(memIDCardNo,7,4) > 1900 
+            And substr(memIDCardNo,7,4) < DATE_FORMAT(now(),'%Y')
+            And substr(memIDCardNo,11,2) <= 12
+            And substr(memIDCardNo,13,2) <= 31
+            And is_date(substr(memIDCardNo,7,8)) = 1
+         Then -- floor(MONTHS_BETWEEN(sysdate,to_date(substr(memIDCardNo,7,8),'yyyymmdd'))/12)
+             ((year(now())-year(SUBSTR(a.memIDCardNo,7,8))-1) + ( DATE_FORMAT(SUBSTR(a.memIDCardNo,7,8), '%m%d') <= DATE_FORMAT(NOW(), '%m%d') ))
+      End  as age,
+
+get_xingzuo(
+ Case When length(memIDCardNo)=18
+            and substr(memIDCardNo,7,4) > 1900 And substr(memIDCardNo,7,4) < DATE_FORMAT(now(),'%Y')
+            And substr(memIDCardNo,11,2) <= 12
+            And substr(memIDCardNo,13,2) <= 31
+            And is_date(substr(memIDCardNo,7,8)) = 1
+         Then date_format(substr(memIDCardNo,7,8),'%Y-%m-%d')
+      
+      End ) xingzuo,
+
+get_shengxiao(
+ Case When length(memIDCardNo)=18
+           and substr(memIDCardNo,7,4) > 1900 And substr(memIDCardNo,7,4) < DATE_FORMAT(now(),'%Y')
+            And substr(memIDCardNo,11,2) <= 12
+            And substr(memIDCardNo,13,2) <= 31
+            And is_date(substr(memIDCardNo,7,8)) = 1
+         Then date_format(substr(memIDCardNo,7,8),'%Y-%m-%d')
+      
+      End ) shengxiao,
+
+createDate,
+memberSource
+
+from dxh_mem.memberinfo a 
+left join code_segement c on left(a.mobileNo,7) = c.segement
+left join t_cnf_nativeCard d on substr(a.memIDCardNo,1,6) = d.CARD_NO
+;
+
+
+truncate table t_mem_infobase;
+insert into t_mem_infobase 
+(vendorid,
+memNo,
+memPhone,
+memName,
+nickName,
+headImg,
+unionid,
+memPointAmount,
+balance,
+memPoint,
+creditLine,
+age,
+sex,
+lifestage,
+xingzuo,
+shengxiao,
+birthday,
+educate,
+job,
+married,
+work_place,
+work_city,
+native_place,
+native_city,
+child,
+viplevel,
+f_pmodel,
+f_carinfo,
+createDate,
+memberSource
+)
+select 
+vendorid,
+memNo,
+mobileNo,
+memName,
+nickName,
+headImg,
+unionid,
+memPointAmount,
+balance,
+memPoint,
+creditLine,
+age,
+sex,
+null lifestage,
+xingzuo,
+shengxiao,
+birthday,
+null educate,
+null job,
+null married,
+work_place,
+work_city,
+native_place,
+native_city,
+null child,
+null viplevel,
+null f_pmodel,
+null f_carinfo,
+createDate,
+memberSource
+from t_mem_infobase_0;
+
+end
