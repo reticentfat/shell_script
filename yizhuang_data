@@ -7,3 +7,328 @@
    13180483 tmc.sql
      456170 travel.sql
    30318410 total
+   /*
+Navicat MySQL Data Transfer
+
+Source Server         : 差旅帮tmc
+Source Server Version : 50634
+Source Host           : **s.com:33                                                                                                                06
+Source Database       : tmc
+
+Target Server Type    : MYSQL
+Target Server Version : 50634
+File Encoding         : 65001
+
+Date: 2018-10-27 14:08:09
+*/
+
+SET FOREIGN_KEY_CHECKS=0;
+
+-- ----------------------------
+-- Table structure for `activitys`
+-- ----------------------------
+DROP TABLE IF EXISTS `activitys`;
+CREATE TABLE `activitys` (
+  `id` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `address` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL COMMEN                                                                                                                T '地址',
+  `last_modify_time` datetime DEFAULT NULL COMMENT '最后修改时间',
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL COMMENT '                                                                                                                名称',
+  `mobile` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL COMMENT                                                                                                                 '电话',
+  `companyname` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL CO                                                                                                                MMENT '公司名称'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='活动表';
+
+-- ----------------------------
+-- Records of activitys
+-- ----------------------------
+INSERT INTO `activitys` VALUES ('7fce47ac34c24e52b523fba2a5468ab8', 'BOSS直聘', 2016-12-16 12:49:55', '廖喜云', '158****7382', '12580');
+
+/*
+ Navicat MySQL Data Transfer
+
+ Source Server         : 12580支付
+
+ Source Server Type    : MySQL
+ Source Server Version : 50173
+ Source Host           : **:3306
+ Source Schema         : insurance
+
+ Target Server Type    : MySQL
+ Target Server Version : 50173
+ File Encoding         : 65001
+
+ Date: 27/10/2018 13:39:33
+*/
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for ausi_bank_reconciliation
+-- ----------------------------
+DROP TABLE IF EXISTS `ausi_bank_reconciliation`;
+CREATE TABLE `ausi_bank_reconciliation` (
+  `ID` varchar(100) NOT NULL,
+  `PAYMENT_CODE` text COMMENT '支付代码',
+  `PAYMENT_SERIALNUMBER` text COMMENT '支付流水号',
+  `PAYMEN_TTIME` varchar(32) DEFAULT NULL COMMENT '支付时间',
+  `PAYMENT_AMOUNT` varchar(32) DEFAULT NULL COMMENT '支付金额',
+  `ORDER_ID` varchar(32) DEFAULT NULL COMMENT '保险订单表id',
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of ausi_bank_reconciliation
+-- ----------------------------
+BEGIN;
+INSERT INTO `ausi_bank_reconciliation` VALUES ('006d45bb89734841ba89ce6a36524450', 'paymentcode=ALIPAY_TEST_003', NULL, '2017-06-09 00:00:00', NULL, '5b0aa35b1426462eab6426be85b033e8');
+
+Navicat MySQL Data Transfer
+
+Source Server         : 差旅帮tmc
+Source Server Version : 50634
+Source Host           : **:3306
+Source Database       : member
+
+Target Server Type    : MYSQL
+Target Server Version : 50634
+File Encoding         : 65001
+
+Date: 2018-10-27 16:13:03
+*/
+
+SET FOREIGN_KEY_CHECKS=0;
+
+-- ----------------------------
+-- Table structure for `card_info`
+-- ----------------------------
+DROP TABLE IF EXISTS `card_info`;
+CREATE TABLE `card_info` (
+  `id` varchar(50) NOT NULL COMMENT '主键',
+  `member_no` varchar(50) DEFAULT NULL COMMENT '关联的会员号(废弃)',
+  `card_no` varchar(50) NOT NULL COMMENT '卡号',
+  `card_type` varchar(11) NOT NULL COMMENT '卡类型(AX安心卡 。。。等)',
+  `sell_price` decimal(8,2) NOT NULL COMMENT '卡的售价',
+  `card_owner` varchar(15) NOT NULL COMMENT '卡的所有者',
+  `owner_idcard` varchar(50) DEFAULT NULL COMMENT '所有者证件号',
+  `paper_type` varchar(11) DEFAULT NULL COMMENT '证件类型',
+  `psg_type` varchar(11) DEFAULT NULL COMMENT '乘客类型',
+  `gender` varchar(11) DEFAULT NULL COMMENT '性别',
+  `birthday` varchar(22) DEFAULT NULL COMMENT '生日',
+  `owner_phone` varchar(15) DEFAULT NULL COMMENT '所有者电话',
+  `expiry_date` datetime NOT NULL COMMENT '此卡卡的有效期',
+  `last_times` varchar(11) DEFAULT NULL COMMENT '剩余使用次数',
+  `max_damage` decimal(8,2) NOT NULL COMMENT '理赔上限，总共可以理赔的总额',
+  `status` varchar(5) DEFAULT NULL,
+  `last_damage_money` decimal(8,2) DEFAULT NULL COMMENT '可用的理赔余额',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `create_user` varchar(55) DEFAULT NULL COMMENT '创建人',
+  `last_modify_time` datetime DEFAULT NULL COMMENT '最后修改时间',
+  `last_modify_user` varchar(55) DEFAULT NULL COMMENT '最后修改人',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+-- ----------------------------
+-- Records of card_info
+-- ----------------------------
+INSERT INTO `card_info` VALUES ('00e1091aa97f429c82debcb674ecda5b', '333608163', '180205115043434855', 'ax', '125.80', '张龙欢', '6103************35', '0002100001', '0002300001', '1', '1995-08-22', '137****9830', '2019-02-05 11:50:43', '12', '1000.00', null, '1000.00', '2018-02-05 11:50:43', null, null, null);
+
+/*
+ Navicat MySQL Data Transfer
+
+ Source Server         : 12580支付
+
+ Source Server Type    : MySQL
+ Source Server Version : 50173
+ Source Host           : **:3306
+ Source Schema         : pay
+
+ Target Server Type    : MySQL
+ Target Server Version : 50173
+ File Encoding         : 65001
+
+ Date: 27/10/2018 13:49:22
+*/
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for aa
+-- ----------------------------
+DROP TABLE IF EXISTS `aa`;
+CREATE TABLE `aa` (
+  `YEAR` varchar(16) NOT NULL,
+  `SALARY` varchar(16) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for account
+-- ----------------------------
+DROP TABLE IF EXISTS `account`;
+CREATE TABLE `account` (
+  `ACCOUNTID` varchar(64) NOT NULL COMMENT '汇付账户号码',
+  `BALANCE` decimal(38,4) DEFAULT NULL COMMENT '账户余额（待扩展）',
+  `OVERDRAWAMT` decimal(38,4) DEFAULT NULL COMMENT '可透支金额（待扩展）',
+  `STATUS` char(1) DEFAULT NULL COMMENT ' 账户状态（0：正常、1：冻结） ',
+  `CREATETIME` datetime DEFAULT NULL COMMENT '创建日期',
+  `REMARK` varchar(128) DEFAULT NULL COMMENT '备注',
+  `ACCOUNTTYPE` char(1) DEFAULT NULL COMMENT '账户类型（1，集团；2，个人）',
+  PRIMARY KEY (`ACCOUNTID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='支付账户';
+
+-- ----------------------------
+-- Records of account
+-- ----------------------------
+BEGIN;
+INSERT INTO `account` VALUES ('000000520092', 0.0000, NULL, '0', '2010-03-05 21:06:00', '生产环境第一位用户', 'P');
+/*
+ Navicat Premium Data Transfer
+
+ Source Server         : 12580支付
+
+ Source Server Type    : MySQL
+ Source Server Version : 50173
+ Source Host           : **:3306
+ Source Schema         : payment
+
+ Target Server Type    : MySQL
+ Target Server Version : 50173
+ File Encoding         : 65001
+
+ Date: 29/10/2018 17:47:49
+*/
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for bd_channel
+-- ----------------------------
+DROP TABLE IF EXISTS `bd_channel`;
+CREATE TABLE `bd_channel` (
+  `ID` int(99) NOT NULL AUTO_INCREMENT,
+  `CHANNEL_NAME` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '渠道名称',
+  `CHANNEL_CODE` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '渠道编码',
+  `AUTHORIZATION_IP` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '授权IP',
+  `CREATE_USER` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '创建用户',
+  `CREATE_TIME` datetime DEFAULT NULL COMMENT '创建时间',
+  `DELETE_FLAG` int(1) DEFAULT '0' COMMENT '删除标记1删除',
+  `PHONE` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '//该渠道的管理员手机',
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- ----------------------------
+-- Records of bd_channel
+-- ----------------------------
+
+
+-- ----------------------------
+-- Table structure for bd_channel_app
+-- ----------------------------
+DROP TABLE IF EXISTS `bd_channel_app`;
+CREATE TABLE `bd_channel_app` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `CHANNEL_ID` int(11) DEFAULT NULL,
+  `APP_NAME` varchar(50) DEFAULT NULL COMMENT 'app名称',
+  `APP_CODE` varchar(50) DEFAULT NULL COMMENT 'app编码',
+  `CREATE_USER` varchar(50) DEFAULT NULL COMMENT '创建用户',
+  `CREATE_TIME` datetime DEFAULT NULL COMMENT '创建时间',
+  `DELETE_FLAG` int(1) DEFAULT NULL COMMENT '删除标记1删除',
+  `RETURN_URL` varchar(100) DEFAULT NULL COMMENT '返回地址',
+  `NOTIFY_URL` varchar(100) DEFAULT NULL COMMENT '通知地址(支付成功;退款成功)(用;分开)(代码还没实现)',
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of bd_channel_app
+-- ----------------------------
+
+
+-- ----------------------------
+-- Table structure for pay_order
+-- ----------------------------
+DROP TABLE IF EXISTS `pay_order`;
+CREATE TABLE `pay_order` (
+  `id` varchar(32) NOT NULL DEFAULT '',
+  `channel_id` int(11) DEFAULT NULL COMMENT '渠道ID',
+  `channel_app_id` int(11) DEFAULT NULL COMMENT '终端id',
+  `ping_charge_id` varchar(32) CHARACTER SET ujis NOT NULL COMMENT 'ping支付成功生成的支付id(退款以此为参照)',
+  `order_no` varchar(200) DEFAULT NULL COMMENT '商户订单号',
+  `order_type` int(1) DEFAULT NULL COMMENT '1机票2火车票3酒店4其它',
+  `pay_status` int(1) DEFAULT NULL COMMENT '支付状态0提交失败,1支付处理中,2支付成功',
+  `pay_type` varchar(20) DEFAULT NULL COMMENT '支付方式(支付宝退款有特殊变化)',
+  `ping_transaction_no` varchar(50) DEFAULT NULL COMMENT '交易流水号',
+  `pay_amount` int(11) DEFAULT NULL COMMENT '支付总金额(人民币以分为单位)',
+  `goods_name` varchar(100) DEFAULT NULL COMMENT '商品的标题',
+  `goods_describe` varchar(250) DEFAULT NULL COMMENT '商品的描述信息',
+  `is_refunded` int(1) DEFAULT NULL COMMENT '是否存在退款0不存在1存在',
+  `amount_refunded` int(11) DEFAULT NULL COMMENT '已退总额(人民币以分为单位)',
+  `pay_success_time` datetime DEFAULT NULL COMMENT '支付时间',
+  `client_ip` varchar(50) DEFAULT NULL COMMENT '发起支付请求客户端IP',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `modify_time` datetime DEFAULT NULL COMMENT '修改时间',
+  `msg` varchar(255) DEFAULT NULL COMMENT '提交失败的信息',
+  `notice_status` varchar(8) DEFAULT NULL COMMENT '通知结果（0默认值，1成功，2失败）',
+  PRIMARY KEY (`id`,`ping_charge_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+/*
+ Navicat Premium Data Transfer
+
+ Source Server         : 12580支付
+
+ Source Server Type    : MySQL
+ Source Server Version : 50173
+ Source Host           : **:3306
+ Source Schema         : sms
+
+ Target Server Type    : MySQL
+ Target Server Version : 50173
+ File Encoding         : 65001
+
+ Date: 29/10/2018 19:06:21
+*/
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for bd_channel
+-- ----------------------------
+DROP TABLE IF EXISTS `bd_channel`;
+CREATE TABLE `bd_channel` (
+  `ID` int(99) NOT NULL AUTO_INCREMENT,
+  `CHANNEL_NAME` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '渠道名称',
+  `CHANNEL_CODE` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '渠道编码',
+  `SINGEL_SEND_NUMBER` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `GROUP_SEND_NUMBER` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `NOTIFY_ADDRESS` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '上行短信通知地址',
+  `CREATE_USER` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '创建用户',
+  `CREATE_TIME` datetime DEFAULT NULL COMMENT '创建时间',
+  `DELETE_FLAG` int(1) DEFAULT '0' COMMENT '删除标记',
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='渠道表';
+
+-- ----------------------------
+-- Records of bd_channel
+-- ----------------------------
+
+
+-- ----------------------------
+-- Table structure for china_reply
+-- ----------------------------
+DROP TABLE IF EXISTS `china_reply`;
+CREATE TABLE `china_reply` (
+  `ID` bigint(20) NOT NULL DEFAULT '0' COMMENT '主键',
+  `mobile` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '移动手机号',
+  `directive` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT '发送指令',
+  `long_num` varchar(30) COLLATE utf8_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='移动上行 消息接收表';
+
+
+
+
+
+
+
