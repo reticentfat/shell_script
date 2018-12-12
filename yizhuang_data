@@ -1,0 +1,9 @@
+ wc -l *.sql
+     529546 insurance.sql
+    7942025 member.sql
+    7258006 pay.sql
+        532 payment.sql
+     951648 sms.sql
+   13180483 tmc.sql
+     456170 travel.sql
+   30318410 total
