@@ -1,0 +1,21 @@
+BEGIN
+
+select substr(INSERT(mobile,4,4,'****'),1,11) mobile,sum(amount) amount 
+from 
+(
+select mobiletelno mobile,sum(amount) amount from yilucaifu.daoqibao_transfer_in where createtime >= '2016-10-01' and transfertype in (1)
+group by mobiletelno
+union all
+select mobile,sum(amount) amount from yilucaifu.p2p_userBuy where  orderTime >= '2016-10-01' and paystatus in (1,9,10)
+group by mobile
+union all
+select mobiletelno, sum(amount) amount from yilucaifu.user_activity_fund_relation a LEFT JOIN yilucaifu.users b on a.user_id = b.user_id
+where createtime >= '2016-10-01'  and (bussinessname='确认成功' or bussinessname is null ) -- 
+   and a.user_id not in(select userid from t_config_ouser)
+group by mobiletelno
+) t
+group by mobile
+order by sum(amount) desc 
+limit 5;
+
+end
